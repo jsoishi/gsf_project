@@ -15,6 +15,45 @@ logger = logging.getLogger(__name__)
 from dedalus2.public import *
 from dedalus2.data.field import Field
 
+# tank parameters
+eta = 0.5 # R1/R2
+r_in = eta/(1. - eta)
+r_out = 1./(1. - eta)
+height = 4.
+Rec = 115.1 
+Re = 2. * Rec
+
+# stratification parameters
+Rayleigh = 1e8 #1e12
+Prandtl = 1
+gamma = 5./3.
+epsilon = 1e-4
+
+poly_n = 1/(gamma-1) - epsilon
+
+del_s0_factor = - epsilon/gamma
+del_log_rho_factor = -poly_n
+
+r0 = 1. + Lr
+
+del_log_rho0 = del_log_rho_factor/(z0 - z_basis.grid)
+T0 = z0 - z_basis.grid
+del_T0 = -1
+
+g_atmosphere = poly_n + 1
+delta_s = del_s0_factor*np.log(z0)
+
+# take constant nu, chi
+nu = np.sqrt(Prandtl*(Lz**3*np.abs(delta_s)*g_atmosphere)/Rayleigh)
+chi = nu/Prandtl
+
+logger.info("Ra = {:g}, Pr = {:g}, gamma = {:g}".format(Rayleigh, Prandtl, gamma))
+logger.info("poly_n = {:g}".format(poly_n))
+logger.info("grad s0 factor = {:g}".format(del_s0_factor))
+logger.info("delta_s = {:g}".format(delta_s))
+logger.info("nu = {:g}, chi = {:g}".format(nu,chi))
+
+
 # bases
 r_basis = Chebyshev(33, interval=(r_in, r_out), dealias=2/3)
 θ_basis = Fourier(32, interval=(0,2*np.pi), dealias=2/3)
@@ -63,14 +102,6 @@ TC.add_right_bc("u = 0", condition="dθ != 0 or dz != 0")
 TC.add_right_bc("v = v_r")
 TC.add_right_bc("w = 0")
 TC.add_int_bc("p = 0", condition="dθ == 0 and dz == 0")
-
-# tank parameters
-eta = 0.5 # R1/R2
-r_in = eta/(1. - eta)
-r_out = 1./(1. - eta)
-height = 4.
-Rec = 115.1 
-Re = 2. * Rec
 
 TC.parameters['nu'] = 1/Re
 TC.parameters['v_l'] = 1.0
