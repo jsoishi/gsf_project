@@ -174,6 +174,11 @@ class GSF_boussinesq_equations(TC_equations):
         self.problem.add_equation("r*dt(T) - r*chi*dr(T_r) - chi*T_r - r*chi*dz(dz(T)) -r*N2*u = -r*u*T_r - r*w*dz(T)")
     
     def set_aux(self):
-        super(GSF_boussinesq_equations, self).set_aux(*args, **kwargs)
+        super(GSF_boussinesq_equations, self).set_aux()
         self.problem.add_equation("T_r - dr(T) = 0")
         
+
+    def set_BC(self):
+        super(GSF_boussinesq_equations, self).set_BC()
+        self.problem.add_bc("left(T) = 0")
+        self.problem.add_bc("right(T) = 0")
