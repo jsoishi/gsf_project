@@ -171,7 +171,7 @@ class GSF_boussinesq_equations(TC_equations):
         self.problem.add_equation("r*r*dt(u) - nu*Lap_r + r*r*dr(p) - T = -UdotGrad_r")
 
     def set_energy(self):
-        self.problem.add_equation("r*dt(T) - r*chi*dr(T_r) - chi*T_r - r*chi*dz(dz(T)) -r*N2*u = -r*u*T_r - r*w*dz(T)")
+        self.problem.add_equation("r*dt(T) - r*chi*dr(T_r) - chi*T_r - r*chi*dz(dz(T))  + r*N2*u = -r*u*T_r - r*w*dz(T)")
     
     def set_aux(self):
         super(GSF_boussinesq_equations, self).set_aux()
