@@ -13,34 +13,27 @@ logger = logging.getLogger(__name__.split('.')[-1])
 
 from dedalus import public as de
 
-class TC_experiment():
-    def __init__(self):
-        pass
-
-    def set_background(self):
-        
-
 class Equations():
     def __init__(self):
         pass
 
     def set_IVP_problem(self, *args, **kwargs):
+        self._set_domain()
         self.problem = de.IVP(self.domain, variables=self.variables)
         self.set_equations(*args, **kwargs)
 
     def set_eigenvalue_problem(self, *args, **kwargs):
+        self._set_domain()
         self.problem = de.EVP(self.domain, variables=self.variables, eigenvalue='omega')
         self.problem.substitutions['dt(f)'] = "omega*f"
         self.set_equations(*args, **kwargs)
 
-    def _set_subs(self):
-        self.problem.substitutions['Div(f)']
-
-    def set_equations(self):
+    def set_equations(self, *args, **kwargs):
+        self._set_subs()
+        self.set_aux()
         self.set_continuity()
         self.set_momentum()
         self.set_energy()
-        self.set_aux()
 
     def initialize_output(self, solver ,data_dir, **kwargs):
         self.analysis_tasks = []
@@ -83,10 +76,10 @@ class Equations():
 
     def set_BC(self, v_l, v_r):
         self.problem.add_bc("left(u) = 0")
-        self.problem.add_bc("left(v) = v_l")
+        self.problem.add_bc("left(v) = vl")
         self.problem.add_bc("left(w) = 0")
         self.problem.add_bc("right(u) = 0", condition="ntheta != 0 or nz != 0")
-        self.problem.add_bc("right(v) = v_r")
+        self.problem.add_bc("right(v) = vr")
         self.problem.add_bc("right(w) = 0")
         self.problem.add_bc("integ(p,'r') = 0", condition="ntheta == 0 and nz == 0")
 
@@ -106,13 +99,13 @@ class Equations():
         if self.threeD:
             # assume pre-multiplication by r*r
             self.problem.substitutions['Lap_s(f, f_r)'] = "r*r*dr(f_r) + r*f_r + dtheta(dtheta(f)) + r*r*dz(dz(f))"
-            self.problem.substitutions['Lap_r'] = "Lap_s(u, u_r) - u - 2*dtheta(v)"
-            self.problem.substitutions['Lap_t'] = "Lap_s(v, v_r) + 2*dtheta(u) - v"
-            self.problem.substitutions['Lap_z'] = "Lap_s(w, w_r)"
+            self.problem.substitutions['Lap_r'] = "Lap_s(u, ur) - u - 2*dtheta(v)"
+            self.problem.substitutions['Lap_t'] = "Lap_s(v, vr) + 2*dtheta(u) - v"
+            self.problem.substitutions['Lap_z'] = "Lap_s(w, wr)"
             self.problem.substitutions['UdotGrad_s(f, f_r)'] = "r*r*u*f_r + r*dtheta(f) + r*r*dz(f)"
-            self.problem.substitutions['UdotGrad_r'] = "UdotGrad_s(u, u_r) - r*v**2"
-            self.problem.substitutions['UdotGrad_t'] = "UdotGrad_s(v, v_r) - r*u*v"
-            self.problem.substitutions['UdotGrad_z'] = "UdotGrad_s(w, w_r)"
+            self.problem.substitutions['UdotGrad_r'] = "UdotGrad_s(u, ur) - r*v**2"
+            self.problem.substitutions['UdotGrad_t'] = "UdotGrad_s(v, vr) - r*u*v"
+            self.problem.substitutions['UdotGrad_z'] = "UdotGrad_s(w, wr)"
         else:
             # assume pre-multiplication by r for scalars and w, r*r for r, theta vector components
             self.problem.substitutions['Lap_s(f, f_r)'] = "r*dr(f_r) + f_r + r*dz(dz(f))"
@@ -120,14 +113,83 @@ class Equations():
             self.problem.substitutions['Lap_t(f, f_r, r)'] = "r*Lap_s(f, f_r) - f"
             self.problem.substitutions['Lap_z(f, f_r)'] = "Lap_s(f,f_r)"
             self.problem.substitutions['UdotGrad_s(f, f_r)'] = "r*u*f_r + r*dz(f)"
-            self.problem.substitutions['UdotGrad_r'] = "r*UdotGrad_s(u, u_r) - r*v**2"
-            self.problem.substitutions['UdotGrad_t'] = "r*UdotGrad_s(v, v_r) - r*u*v"
-            self.problem.substitutions['UdotGrad_z'] = "UdotGrad_s(w, w_r)"
+            self.problem.substitutions['UdotGrad_r'] = "r*UdotGrad_s(u, ur) - r*v**2"
+            self.problem.substitutions['UdotGrad_t'] = "r*UdotGrad_s(v, vr) - r*u*v"
+            self.problem.substitutions['UdotGrad_z'] = "UdotGrad_s(w, wr)"
 
 class TC_equations(Equations):
-    def __init__(self):
+    """
+    delta = R2 - R1
+    mu = Omega2/Omega1
+    eta = R1/R2
+
+    scale [L] = delta
+    scale [T] = delta/(R1 Omega1)
+    scale [V] = R1 Omega1
+    """
+
+    def __init__(self, nr=32, ntheta=0, nz=32, grid_dtype=np.float64, dealias=3/2):
+        self.nr = nr 
+        self.ntheta = ntheta
+        self.nz = nz
+        if ntheta:
+            self.threeD = True
+        else:
+            self.threeD = False
+
+        self.grid_dtype = grid_dtype
+        self.dealias = dealias
+
         self.equation_set = 'incompressible TC'
-        self.variables = ['u','u_r','v','v_r','w','w_z','T1','T1_z','p']
+        self.variables = ['u','ur','v','vr','w','wr','p']
+
+    def _set_domain(self):
+        """
+
+        """
+
+        #try:
+        t_bases = self._set_transverse_bases()
+        r_basis = self._set_r_basis()
+        #except AttributeError:
+        #    raise AttributeError("You must set parameters before constructing the domain.")
+
+        bases = t_bases + r_basis
+        
+        self.domain = de.Domain(bases, grid_dtype=self.grid_dtype)        
+        
+    def _set_transverse_bases(self):
+        z_basis = de.Fourier(  'z', self.nz, interval=[0., self.Lz], dealias=self.dealias)
+        trans_bases = [z_basis,]
+        if self.threeD:
+            theta_basis = de.Fourier('theta', self.ntheta, interval=[0., 2*np.pi], dealias=self.dealias)
+            trans_bases += theta_basis
+
+        return trans_bases
+
+    def _set_r_basis(self):
+        r_basis = de.Chebyshev('r', self.nr, interval=[self.R1, self.R2], dealias=3/2)
+        
+        return [r_basis,]
+
+    def set_parameters(self, mu, eta, Re1, Lz):
+        self.mu = mu 
+        self.eta = eta
+        self.Re1 = Re1
+        self.Lz = Lz
+
+        self.R1 = self.eta/(1. - self.eta)
+        self.R2 = 1./(1-self.eta)
+        self.Omega1 = 1/self.R1
+        self.Omega2 = self.eta
+        self.nu = self.R1 * self.Omega1/self.Re1
+
+    def calc_v0(self):
+        r = self.domain.grid(-1)
+        A = -self.Omega1 * self.eta * (1-self.mu/self.eta**2)/(1-self.eta**2)
+        B = self.Omega1 * self.R1**2 * (1 - self.mu)/((1-self.eta**2))
+        Omega = A + B/r
+        return r*Omega
 
     def set_continuity(self):
         if self.threeD:
@@ -165,17 +227,17 @@ class TC_equations(Equations):
 class GSF_boussinesq_equations(TC_equations):
     def __init__(self):
         self.equation_set = 'Spiegel-Veronis Compressible Boussinesq'
-        self.variables = ['u','u_r','v','v_r','w','w_z','T','T_r','p']
+        self.variables = ['u','ur','v','vr','w','wr','T','Tr','p']
 
     def set_mom_r(self):
         self.problem.add_equation("r*r*dt(u) - nu*Lap_r + r*r*dr(p) - T = -UdotGrad_r")
 
     def set_energy(self):
-        self.problem.add_equation("r*dt(T) - r*chi*dr(T_r) - chi*T_r - r*chi*dz(dz(T))  + r*N2*u = -r*u*T_r - r*w*dz(T)")
+        self.problem.add_equation("r*dt(T) - r*chi*dr(Tr) - chi*Tr - r*chi*dz(dz(T))  + r*N2*u = -r*u*Tr - r*w*dz(T)")
     
     def set_aux(self):
         super(GSF_boussinesq_equations, self).set_aux()
-        self.problem.add_equation("T_r - dr(T) = 0")
+        self.problem.add_equation("Tr - dr(T) = 0")
         
 
     def set_BC(self):
