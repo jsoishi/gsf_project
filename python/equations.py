@@ -108,17 +108,17 @@ class Equations():
             self.problem.substitutions['Lap_t'] = "Lap_s(v, vr) + 2*dtheta(u) - v"
             self.problem.substitutions['Lap_z'] = "Lap_s(w, wr)"
             self.problem.substitutions['UdotGrad_s(f, f_r)'] = "r*r*u*f_r + r*dtheta(f) + r*r*dz(f)"
-            self.problem.substitutions['UdotGrad_r'] = "UdotGrad_s(u, ur) - r*v**2"
+            self.problem.substitutions['UdotGrad_r'] = "UdotGrad_s(u, ur) - r*v*v"
             self.problem.substitutions['UdotGrad_t'] = "UdotGrad_s(v, vr) - r*u*v"
             self.problem.substitutions['UdotGrad_z'] = "UdotGrad_s(w, wr)"
         else:
             # assume pre-multiplication by r for scalars and w, r*r for r, theta vector components
             self.problem.substitutions['Lap_s(f, f_r)'] = "r*dr(f_r) + f_r + r*dz(dz(f))"
-            self.problem.substitutions['Lap_r(f, f_r, t)'] = "r*Lap_s(f, f_r) - f"
-            self.problem.substitutions['Lap_t(f, f_r, r)'] = "r*Lap_s(f, f_r) - f"
-            self.problem.substitutions['Lap_z(f, f_r)'] = "Lap_s(f,f_r)"
+            self.problem.substitutions['Lap_r'] = "r*Lap_s(u, ur) - u"
+            self.problem.substitutions['Lap_t'] = "r*Lap_s(v, vr) - v"
+            self.problem.substitutions['Lap_z'] = "Lap_s(w,wr)"
             self.problem.substitutions['UdotGrad_s(f, f_r)'] = "r*u*f_r + r*dz(f)"
-            self.problem.substitutions['UdotGrad_r'] = "r*UdotGrad_s(u, ur) - r*v**2"
+            self.problem.substitutions['UdotGrad_r'] = "r*UdotGrad_s(u, ur) - r*v*v"
             self.problem.substitutions['UdotGrad_t'] = "r*UdotGrad_s(v, vr) - r*u*v"
             self.problem.substitutions['UdotGrad_z'] = "UdotGrad_s(w, wr)"
 
