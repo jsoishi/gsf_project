@@ -28,7 +28,12 @@ class Equations():
         self.problem.substitutions['dt(f)'] = "omega*f"
         self.set_equations(*args, **kwargs)
 
+    def _apply_params(self):
+        for k,v in self._eqn_params.items():
+            self.problem.parameters[k] = v
+
     def set_equations(self, *args, **kwargs):
+        self._apply_params()
         self._set_subs()
         self.set_aux()
         self.set_continuity()
@@ -147,7 +152,6 @@ class TC_equations(Equations):
         """
 
         """
-
         #try:
         t_bases = self._set_transverse_bases()
         r_basis = self._set_r_basis()
@@ -183,6 +187,11 @@ class TC_equations(Equations):
         self.Omega1 = 1/self.R1
         self.Omega2 = self.eta
         self.nu = self.R1 * self.Omega1/self.Re1
+
+        self._eqn_params = {}
+        self._eqn_params['nu'] = self.nu
+        self._eqn_params['v_l'] = self.R1*self.Omega1
+        self._eqn_params['v_r'] = self.R2*self.Omega2
 
     def calc_v0(self):
         r = self.domain.grid(-1)
@@ -228,6 +237,12 @@ class GSF_boussinesq_equations(TC_equations):
     def __init__(self):
         self.equation_set = 'Spiegel-Veronis Compressible Boussinesq'
         self.variables = ['u','ur','v','vr','w','wr','T','Tr','p']
+
+    def set_parameters(self, mu, eta, Re1, Lz, Pm):
+        super(GSF_boussinesq_equations, self).set_parameters(mu, eta, Re1, Lz)
+        self.Pm = Pm
+        self.chi = self.Pm/self.nu
+        self._eqn_params['chi'] = self.chi
 
     def set_mom_r(self):
         self.problem.add_equation("r*r*dt(u) - nu*Lap_r + r*r*dr(p) - T = -UdotGrad_r")
