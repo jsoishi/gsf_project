@@ -79,14 +79,20 @@ class Equations():
 
         return self.analysis_tasks
 
-    def set_BC(self, v_l, v_r):
+    def set_BC(self):
         self.problem.add_bc("left(u) = 0")
-        self.problem.add_bc("left(v) = vl")
+        self.problem.add_bc("left(v) = v_l")
         self.problem.add_bc("left(w) = 0")
-        self.problem.add_bc("right(u) = 0", condition="ntheta != 0 or nz != 0")
-        self.problem.add_bc("right(v) = vr")
+        if self.threeD:
+            self.problem.add_bc("right(u) = 0", condition="ntheta != 0 or nz != 0")
+        else:
+            self.problem.add_bc("right(u) = 0", condition="nz != 0")
+        self.problem.add_bc("right(v) = v_r")
         self.problem.add_bc("right(w) = 0")
-        self.problem.add_bc("integ(p,'r') = 0", condition="ntheta == 0 and nz == 0")
+        if self.threeD:
+            self.problem.add_bc("integ(p,'r') = 0", condition="ntheta == 0 and nz == 0")
+        else:
+            self.problem.add_bc("integ(p,'r') = 0", condition="nz == 0")
 
     def _set_subs(self):
         """
