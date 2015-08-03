@@ -79,18 +79,21 @@ class Equations():
 
     def set_BC(self):
         self.problem.add_bc("left(u) = 0")
-        self.problem.add_bc("left(v) = v_l")
-        self.problem.add_bc("left(w) = 0")
         if self.threeD:
             self.problem.add_bc("right(u) = 0", condition="ntheta != 0 or nz != 0")
         else:
             self.problem.add_bc("right(u) = 0", condition="nz != 0")
-        self.problem.add_bc("right(v) = v_r")
-        self.problem.add_bc("right(w) = 0")
         if self.threeD:
             self.problem.add_bc("integ(p,'r') = 0", condition="ntheta == 0 and nz == 0")
         else:
             self.problem.add_bc("integ(p,'r') = 0", condition="nz == 0")
+
+        self.problem.add_bc("left(v) = v_l")
+        self.problem.add_bc("right(v) = v_r")
+
+        self.problem.add_bc("left(w) = 0")
+        self.problem.add_bc("right(w) = 0")
+
 
     def _set_subs(self):
         """
@@ -106,7 +109,7 @@ class Equations():
         self.problem.substitutions['vel_sum_sq'] = 'u**2 + v**2 + w**2'
 
         # NB: this problem assumes delta = R2 - R1 = 1 
-        self.problem.substitutions['plane_avg(A)'] = 'integ(A, "r")'
+        self.problem.substitutions['plane_avg(A)'] = 'integ(A, "z")'
         self.problem.substitutions['vol_avg(A)']   = 'integ(A)/Lz'
         self.problem.substitutions['KE'] = 'vel_sum_sq/2'
         self.problem.substitutions['u_rms'] = 'sqrt(u*u)'
@@ -138,7 +141,7 @@ class Equations():
             self.problem.substitutions['Lap_z'] = "Lap_s(w,wr)"
             self.problem.substitutions['UdotGrad_s(f, f_r)'] = "r*u*f_r + r*w*dz(f)"
             self.problem.substitutions['UdotGrad_r'] = "r*UdotGrad_s(u, ur) - r*v*v"
-            self.problem.substitutions['UdotGrad_t'] = "r*UdotGrad_s(v, vr) - r*u*v"
+            self.problem.substitutions['UdotGrad_t'] = "r*UdotGrad_s(v, vr) + r*u*v"
             self.problem.substitutions['UdotGrad_z'] = "UdotGrad_s(w, wr)"
 
 class TC_equations(Equations):
@@ -204,7 +207,7 @@ class TC_equations(Equations):
         self.R1 = self.eta/(1. - self.eta)
         self.R2 = 1./(1-self.eta)
         self.Omega1 = 1/self.R1
-        self.Omega2 = self.eta
+        self.Omega2 = self.mu*self.Omega1
         self.nu = self.R1 * self.Omega1/self.Re1
 
         self._eqn_params = {}
@@ -215,10 +218,10 @@ class TC_equations(Equations):
 
     def calc_v0(self):
         r = self.domain.grid(-1)
-        A = -self.Omega1 * self.eta * (1-self.mu/self.eta**2)/(1-self.eta**2)
+        A = -self.Omega1 * self.eta**2 * (1-self.mu/self.eta**2)/(1-self.eta**2)
         B = self.Omega1 * self.R1**2 * (1 - self.mu)/((1-self.eta**2))
-        Omega = A + B/r
-        return r*Omega
+        v0 = A*r + B/r
+        return v0
 
     def set_continuity(self):
         if self.threeD:

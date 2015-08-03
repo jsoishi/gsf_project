@@ -11,7 +11,7 @@ Options:
     --eta=<eta>    eta [default: 0.6925207756232687]
     --Lz=<Lz>      Lz  [default: 2.0074074463832545]
     --restart=<restart_file>   Restart from checkpoint
-    --nz=<nz>                  vertical z (Fourier) resolution [default: 128]
+    --nz=<nz>                  vertical z (Fourier) resolution [default: 32]
 """
 import os
 import numpy as np
@@ -19,18 +19,20 @@ import time
 import dedalus.public as de
 from dedalus.extras import flow_tools
 from dedalus.tools  import post
-try:
-    from dedalus.extras.checkpointing import Checkpoint
-    do_checkpointing=True
-except ImportError:
-    print("No Checkpointing module. Setting checkpointing to false.")
-    do_checkpointing=False
 
 import logging
 logger = logging.getLogger(__name__)
 # root = logging.root
 # for h in root.handlers:
 #     h.setLevel("DEBUG")
+
+try:
+    from dedalus.extras.checkpointing import Checkpoint
+    do_checkpointing=True
+except ImportError:
+    logger.warn("No Checkpointing module. Setting checkpointing to false.")
+    do_checkpointing=False
+
 
 from equations import TC_equations
 
@@ -68,6 +70,8 @@ if TC.domain.distributor.rank == 0:
 ts = de.timesteppers.RK443
 solver= problem.build_solver(ts)
 
+for k,v in problem.parameters.items():
+    logger.info("paramter {}: {}".format(k,v))
 
 if do_checkpointing:
     checkpoint = Checkpoint(data_dir)
@@ -115,7 +119,7 @@ omega1 = problem.parameters['v_l']/r_in
 period = 2*np.pi/omega1
 solver.stop_sim_time = 15*period
 solver.stop_wall_time = np.inf
-solver.stop_iteration = np.inf
+solver.stop_iteration = 200#np.inf
 
 output_time_cadence = 0.1*period
 analysis_tasks = TC.initialize_output(solver, data_dir, sim_dt=output_time_cadence)
