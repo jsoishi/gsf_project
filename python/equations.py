@@ -46,36 +46,34 @@ class Equations():
         analysis_slice.add_task("u", name="u")
         analysis_slice.add_task("v", name="v")
         analysis_slice.add_task("w", name="w")
-        analysis_slice.add_task("theta", name="buoyancy")
-        analysis_tasks.append(analysis_slice)
+        #analysis_slice.add_task("theta", name="buoyancy")
+        self.analysis_tasks.append(analysis_slice)
         
         analysis_profile = solver.evaluator.add_file_handler(data_dir+"profiles", max_writes=20, parallel=False, **kwargs)
         analysis_profile.add_task("plane_avg(KE)", name="KE")
-        analysis_profile.add_task("plane_avg(PE)", name="PE")
-        analysis_profile.add_task("plane_avg(KE + PE)", name="TE")
 
         analysis_profile.add_task("plane_avg(u_rms)", name="u_rms")
         analysis_profile.add_task("plane_avg(v_rms)", name="v_rms")
         analysis_profile.add_task("plane_avg(w_rms)", name="w_rms")
         analysis_profile.add_task("plane_avg(Re_rms)", name="Re_rms")
-        analysis_profile.add_task("plane_avg(enstrophy)", name="enstrophy")
+        #analysis_profile.add_task("plane_avg(enstrophy)", name="enstrophy")
         
-        analysis_tasks.append(analysis_profile)
+        self.analysis_tasks.append(analysis_profile)
 
         analysis_scalar = solver.evaluator.add_file_handler(data_dir+"scalar", max_writes=20, parallel=False, **kwargs)
         analysis_scalar.add_task("vol_avg(KE)", name="KE")
-        analysis_scalar.add_task("vol_avg(PE)", name="PE")
-        analysis_scalar.add_task("vol_avg(KE + PE)", name="TE")
+        #analysis_scalar.add_task("vol_avg(PE)", name="PE")
+        #analysis_scalar.add_task("vol_avg(KE + PE)", name="TE")
         analysis_scalar.add_task("vol_avg(u_rms)", name="u_rms")
         analysis_scalar.add_task("vol_avg(v_rms)", name="v_rms")
         analysis_scalar.add_task("vol_avg(w_rms)", name="w_rms")
         analysis_scalar.add_task("vol_avg(Re_rms)", name="Re_rms")
-        analysis_scalar.add_task("vol_avg(enstrophy)", name="enstrophy")
+        #analysis_scalar.add_task("vol_avg(enstrophy)", name="enstrophy")
 
-        analysis_tasks.append(analysis_scalar)
+        self.analysis_tasks.append(analysis_scalar)
 
         # workaround for issue #29
-        self.problem.namespace['enstrophy'].store_last = True
+        #self.problem.namespace['enstrophy'].store_last = True
 
         return self.analysis_tasks
 
@@ -106,6 +104,21 @@ class Equations():
 
         """
         self.problem.substitutions['vel_sum_sq'] = 'u**2 + v**2 + w**2'
+
+        # NB: this problem assumes delta = R2 - R1 = 1 
+        self.problem.substitutions['plane_avg(A)'] = 'integ(A, "r")'
+        self.problem.substitutions['vol_avg(A)']   = 'integ(A)/Lz'
+        self.problem.substitutions['KE'] = 'vel_sum_sq/2'
+        self.problem.substitutions['u_rms'] = 'sqrt(u*u)'
+        self.problem.substitutions['v_rms'] = 'sqrt(v*v)'
+        self.problem.substitutions['w_rms'] = 'sqrt(w*w)'
+        self.problem.substitutions['Re_rms'] = 'sqrt(vel_sum_sq)*Lz/nu'
+
+        # if self.threeD:
+        #     self.problem.substitutions['enstrophy'] = '(dy(w) - v_z)**2 + (u_z- dx(w) )**2 + (dx(v) - dy(u))**2'
+        # else:
+        #     self.problem.substitutions['enstrophy'] = '(u_z - dx(w))**2'
+
         
         if self.threeD:
             # assume pre-multiplication by r*r
@@ -198,6 +211,7 @@ class TC_equations(Equations):
         self._eqn_params['nu'] = self.nu
         self._eqn_params['v_l'] = self.R1*self.Omega1
         self._eqn_params['v_r'] = self.R2*self.Omega2
+        self._eqn_params['Lz'] = self.Lz
 
     def calc_v0(self):
         r = self.domain.grid(-1)
