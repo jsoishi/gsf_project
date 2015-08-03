@@ -18,6 +18,7 @@ import numpy as np
 import time 
 import dedalus.public as de
 from dedalus.extras import flow_tools
+from dedalus.tools  import post
 try:
     from dedalus.extras.checkpointing import Checkpoint
     do_checkpointing=True
@@ -118,4 +119,34 @@ solver.stop_iteration = np.inf
 
 output_time_cadence = 0.1*period
 analysis_tasks = TC.initialize_output(solver, data_dir, sim_dt=output_time_cadence)
+
+CFL = flow_tools.CFL(solver, initial_dt=1e-3, cadence=5, safety=0.3,
+                     max_change=1.5, min_change=0.5)
+CFL.add_velocities(('u', 'w'))
+
+dt = CFL.compute_dt()
+# Main loop
+start_time = time.time()
+
+while solver.ok:
+    solver.step(dt)
+    logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
+    dt = CFL.compute_dt()
+
+
+end_time = time.time()
+
+# Print statistics
+logger.info('Total time: %f' %(end_time-start_time))
+logger.info('Iterations: %i' %solver.iteration)
+logger.info('Average timestep: %f' %(solver.sim_time/solver.iteration))
+
+logger.info('beginning join operation')
+if do_checkpointing:
+    logger.info(data_dir+'/checkpoint/')
+    post.merge_analysis(data_dir+'/checkpoint/')
+
+for task in analysis_tasks:
+    logger.info(task.base_path)
+    post.merge_analysis(task.base_path)
 
