@@ -56,6 +56,7 @@ class Equations():
         analysis_profile.add_task("plane_avg(v_rms)", name="v_rms")
         analysis_profile.add_task("plane_avg(w_rms)", name="w_rms")
         analysis_profile.add_task("plane_avg(Re_rms)", name="Re_rms")
+        analysis_profile.add_task("plane_avg(epicyclic_freq_sq)", name="epicyclic_freq_sq")
         #analysis_profile.add_task("plane_avg(enstrophy)", name="enstrophy")
         
         self.analysis_tasks.append(analysis_profile)
@@ -116,7 +117,7 @@ class Equations():
         self.problem.substitutions['v_rms'] = 'sqrt(v*v)'
         self.problem.substitutions['w_rms'] = 'sqrt(w*w)'
         self.problem.substitutions['Re_rms'] = 'sqrt(vel_sum_sq)*Lz/nu'
-
+        self.problem.substitutions['epicyclic_freq_sq']  = 'dr(r*r*r*r*v*v)/(r*r*r)'
         # if self.threeD:
         #     self.problem.substitutions['enstrophy'] = '(dy(w) - v_z)**2 + (u_z- dx(w) )**2 + (dx(v) - dy(u))**2'
         # else:

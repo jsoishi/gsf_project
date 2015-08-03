@@ -117,7 +117,7 @@ else:
 
 omega1 = problem.parameters['v_l']/r_in
 period = 2*np.pi/omega1
-solver.stop_sim_time = 15*period
+solver.stop_sim_time = 50*period
 solver.stop_wall_time = np.inf
 solver.stop_iteration = 200#np.inf
 
