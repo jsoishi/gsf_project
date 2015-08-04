@@ -258,15 +258,19 @@ class TC_equations(Equations):
         pass
 
 class GSF_boussinesq_equations(TC_equations):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super(GSF_boussinesq_equations,self).__init__(*args, **kwargs)
         self.equation_set = 'Spiegel-Veronis Compressible Boussinesq'
         self.variables = ['u','ur','v','vr','w','wr','T','Tr','p']
 
-    def set_parameters(self, mu, eta, Re1, Lz, Pm):
+    def set_parameters(self, mu, eta, Re1, Lz, Pr, N2):
         super(GSF_boussinesq_equations, self).set_parameters(mu, eta, Re1, Lz)
-        self.Pm = Pm
-        self.chi = self.Pm/self.nu
+        self.N2 = N2/self.Omega1
+        self.Pr = Pr
+        self.chi = self.Pr/self.nu
+
         self._eqn_params['chi'] = self.chi
+        self._eqn_params['N2'] = self.N2
 
     def set_mom_r(self):
         self.problem.add_equation("r*r*dt(u) - nu*Lap_r + r*r*dr(p) - T = -UdotGrad_r")

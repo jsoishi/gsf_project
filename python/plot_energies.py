@@ -71,7 +71,8 @@ def plot_energies(energies, t, output_path='./'):
 
 
     for key in figs.keys():
-        figs[key].savefig('./'+'scalar_{}.png'.format(key))
+        outfile = str(output_path.joinpath('scalar_{}.png'.format(key)))
+        figs[key].savefig(outfile)
     
 def compute_growth(wrms, t, period, g_scale=80., verbose=True):
     t_window = (t/period > 2) & (t/period < 8)
