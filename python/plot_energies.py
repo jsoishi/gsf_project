@@ -48,7 +48,7 @@ def read_timeseries(files, verbose=False):
 
     return ts
 
-def plot_energies(energies, t, output_path='./'):
+def plot_energies(energies, t, output_path='./', calc_growth_rate=False):
     [KE, w_rms] = energies
 
     figs = {}
@@ -57,15 +57,17 @@ def plot_energies(energies, t, output_path='./'):
     print("period = {}".format(period))
     fig_energies = plt.figure(figsize=(16,8))
     ax1 = fig_energies.add_subplot(2,1,1)
+    ax2 = fig_energies.add_subplot(2,1,2)
     #ax1.semilogy(t/period, KE, label="KE")
     ax1.plot(t/period, KE, label="KE")
-
-    gamma_w, log_w0 = compute_growth(w_rms, t, period)
-   
-    ax2 = fig_energies.add_subplot(2,1,2)
     ax2.semilogy(t/period, w_rms, label=r"$w_{rms}$")
-    ax2.semilogy(t/period, np.exp(log_w0)*np.exp(gamma_w*t), 'k-.', label='$\gamma_w = %f$' % gamma_w)
-    ax2.legend(loc='lower right').draw_frame(False)
+    if calc_growth_rate:
+        gamma_w, log_w0 = compute_growth(w_rms, t, period)
+   
+
+        
+        ax2.semilogy(t/period, np.exp(log_w0)*np.exp(gamma_w*t), 'k-.', label='$\gamma_w = %f$' % gamma_w)
+        ax2.legend(loc='lower right').draw_frame(False)
 
     figs["energies"]=fig_energies
 
