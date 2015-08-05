@@ -46,7 +46,8 @@ class Equations():
         analysis_slice.add_task("u", name="u")
         analysis_slice.add_task("v", name="v")
         analysis_slice.add_task("w", name="w")
-        #analysis_slice.add_task("theta", name="buoyancy")
+        if 'T' in self.variables:
+            analysis_slice.add_task("T", name="T")
         self.analysis_tasks.append(analysis_slice)
         
         analysis_profile = solver.evaluator.add_file_handler(data_dir+"profiles", max_writes=20, parallel=False, **kwargs)
@@ -117,7 +118,7 @@ class Equations():
         self.problem.substitutions['v_rms'] = 'sqrt(v*v)'
         self.problem.substitutions['w_rms'] = 'sqrt(w*w)'
         self.problem.substitutions['Re_rms'] = 'sqrt(vel_sum_sq)*Lz/nu'
-        self.problem.substitutions['epicyclic_freq_sq']  = 'dr(r*r*r*r*v*v)/(r*r*r)'
+        self.problem.substitutions['epicyclic_freq_sq']  = 'dr(r*r*v*v)/(r*r*r)'
         # if self.threeD:
         #     self.problem.substitutions['enstrophy'] = '(dy(w) - v_z)**2 + (u_z- dx(w) )**2 + (dx(v) - dy(u))**2'
         # else:
