@@ -16,33 +16,21 @@ Options:
     --restart=<restart_file>   Restart from checkpoint
     --nz=<nz>                  vertical z (Fourier) resolution [default: 32]
 """
+import logging
 import os
-import numpy as np
+import sys
 import time 
+
+import numpy as np
+from docopt import docopt
 import dedalus.public as de
 from dedalus.extras import flow_tools
 from dedalus.tools  import post
 
-import logging
-logger = logging.getLogger(__name__)
-# root = logging.root
-# for h in root.handlers:
-#     h.setLevel("DEBUG")
-
-try:
-    from dedalus.extras.checkpointing import Checkpoint
-    do_checkpointing=True
-except ImportError:
-    logger.warn("No Checkpointing module. Setting checkpointing to false.")
-    do_checkpointing=False
-
 from equations import GSF_boussinesq_equations
 
-
-from docopt import docopt
+# parse arguments
 args = docopt(__doc__)
-
-import sys
 
 mu = float(args['--mu'])
 Re = float(args['--Re'])
@@ -60,8 +48,30 @@ restart = args['--restart']
 # save data in directory named after script
 data_dir = "scratch/" + sys.argv[0].split('.py')[0]
 data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_nz{5:d}/".format(Re, mu, eta, Pr, N2, nz)
+
+
+# configure logging
+logfile= os.path.join(data_dir,'dedalus.log')
+logger = logging.getLogger(__name__)
+root = logging.root
+fh = logging.FileHandler(logfile)
+root.addHandler(fh)
+# for h in root.handlers:
+#     h.setLevel("DEBUG")
+
+
+
 logger.info("saving run in: {}".format(data_dir))
 
+# use checkpointing if available
+try:
+    from dedalus.extras.checkpointing import Checkpoint
+    do_checkpointing=True
+except ImportError:
+    logger.warn("No Checkpointing module. Setting checkpointing to false.")
+    do_checkpointing=False
+
+# configure GSF equations
 GSF = GSF_boussinesq_equations(nr=nr, nz=nz)
 GSF.set_parameters(mu, eta, Re, Lz, Pr, N2)
 GSF.set_IVP_problem()
@@ -72,7 +82,7 @@ if GSF.domain.distributor.rank == 0:
         if not os.path.exists('{:s}/'.format(data_dir)):
             os.mkdir('{:s}/'.format(data_dir))
 
-        # write hg diffs to a text file
+        # write any hg diffs to a text file
         if GSF.hg_diff:
             diff_filename = os.path.join(data_dir,'diff.txt')
             with open(diff_filename,'w') as file:
