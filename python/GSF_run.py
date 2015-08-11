@@ -58,8 +58,8 @@ nr = nz
 restart = args['--restart']
 
 # save data in directory named after script
-data_dir = sys.argv[0].split('.py')[0]
-data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}/".format(Re, mu, eta, Pr, N2)
+data_dir = "scratch/" + sys.argv[0].split('.py')[0]
+data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_nz{5:d}/".format(Re, mu, eta, Pr, N2, nz)
 logger.info("saving run in: {}".format(data_dir))
 
 GSF = GSF_boussinesq_equations(nr=nr, nz=nz)
@@ -72,11 +72,17 @@ if GSF.domain.distributor.rank == 0:
         if not os.path.exists('{:s}/'.format(data_dir)):
             os.mkdir('{:s}/'.format(data_dir))
 
+        # write hg diffs to a text file
+        if GSF.hg_diff:
+            diff_filename = os.path.join(data_dir,'diff.txt')
+            with open(diff_filename,'w') as file:
+                file.write(GSF.hg_diff)
+
 ts = de.timesteppers.RK443
 solver= problem.build_solver(ts)
 
 for k,v in problem.parameters.items():
-    logger.info("paramter {}: {}".format(k,v))
+    logger.info("problem parameter {}: {}".format(k,v))
 
 if do_checkpointing:
     checkpoint = Checkpoint(data_dir)

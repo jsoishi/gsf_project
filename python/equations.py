@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import subprocess
 from mpi4py import MPI
 
 from collections import OrderedDict
@@ -15,7 +16,15 @@ from dedalus import public as de
 
 class Equations():
     def __init__(self):
-        pass
+        raw_id = subprocess.check_output(['hg','id','-i'])
+
+        self.hg_version = raw_id.decode().strip()
+        logger.info("equations version {}".format(self.hg_version))
+
+        self.hg_diff = None
+        if self.hg_version.endswith('+'):
+            raw_diff = subprocess.check_output(['hg','diff'])
+            self.hg_diff = raw_diff.decode()
 
     def set_IVP_problem(self, *args, **kwargs):
         self._set_domain()
@@ -158,6 +167,7 @@ class TC_equations(Equations):
     """
 
     def __init__(self, nr=32, ntheta=0, nz=32, grid_dtype=np.float64, dealias=3/2):
+        super(TC_equations,self).__init__()
         self.nr = nr 
         self.ntheta = ntheta
         self.nz = nz
