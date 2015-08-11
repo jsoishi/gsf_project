@@ -274,7 +274,7 @@ class GSF_boussinesq_equations(TC_equations):
         self._eqn_params['N2'] = self.N2
 
     def set_mom_r(self):
-        self.problem.add_equation("r*r*dt(u) - nu*Lap_r + r*r*dr(p) - T = -UdotGrad_r")
+        self.problem.add_equation("r*r*dt(u) - nu*Lap_r + r*r*dr(p) - r*r*T = -UdotGrad_r")
 
     def set_energy(self):
         self.problem.add_equation("r*dt(T) - r*chi*dr(Tr) - chi*Tr - r*chi*dz(dz(T))  + r*N2*u = -r*u*Tr - r*w*dz(T)")
