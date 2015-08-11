@@ -266,9 +266,9 @@ class GSF_boussinesq_equations(TC_equations):
 
     def set_parameters(self, mu, eta, Re1, Lz, Pr, N2):
         super(GSF_boussinesq_equations, self).set_parameters(mu, eta, Re1, Lz)
-        self.N2 = N2/self.Omega1
+        self.N2 = N2/self.Omega1**2
         self.Pr = Pr
-        self.chi = self.Pr/self.nu
+        self.chi = self.nu/self.Pr
 
         self._eqn_params['chi'] = self.chi
         self._eqn_params['N2'] = self.N2
