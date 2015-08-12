@@ -5,7 +5,7 @@ Usage:
     plot_energies.py <files>... [--output=<dir>]
 
 Options:
-    --output=<dir>  Output directory [default: ./frames]
+    --output=<dir>  Output directory
 
 """
 import numpy as np
@@ -100,7 +100,16 @@ if __name__ == "__main__":
 
     args = docopt(__doc__)
 
-    output_path = pathlib.Path(args['--output']).absolute()
+
+    if not args['--output']:
+        print('hello?')
+        p = pathlib.Path(args['<files>'][0])
+        print(p)
+        output_path = pathlib.Path('scratch',pathlib.Path(args['<files>'][0]).parts[-3])
+        output_path = pathlib.Path(output_path)
+    else:
+        output_path = pathlib.Path(args['--output']).absolute()
+
     # Create output directory if needed
     with Sync() as sync:
         if sync.comm.rank == 0:
