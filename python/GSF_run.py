@@ -23,11 +23,6 @@ import time
 
 import numpy as np
 from docopt import docopt
-import dedalus.public as de
-from dedalus.extras import flow_tools
-from dedalus.tools  import post
-
-from equations import GSF_boussinesq_equations
 
 # parse arguments
 args = docopt(__doc__)
@@ -49,19 +44,15 @@ restart = args['--restart']
 data_dir = "scratch/" + sys.argv[0].split('.py')[0]
 data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_nz{5:d}/".format(Re, mu, eta, Pr, N2, nz)
 
+from dedalus.tools.config import config
 
-# configure logging
-logfile= os.path.join(data_dir,'dedalus.log')
+config['logging']['filename'] = os.path.join(data_dir,'dedalus_log')
+config['logging']['file_level'] = 'DEBUG'
+
+import dedalus.public as de
+from dedalus.extras import flow_tools
+from dedalus.tools  import post
 logger = logging.getLogger(__name__)
-root = logging.root
-fh = logging.FileHandler(logfile)
-root.addHandler(fh)
-# for h in root.handlers:
-#     h.setLevel("DEBUG")
-
-
-
-logger.info("saving run in: {}".format(data_dir))
 
 # use checkpointing if available
 try:
@@ -71,6 +62,7 @@ except ImportError:
     logger.warn("No Checkpointing module. Setting checkpointing to false.")
     do_checkpointing=False
 
+from equations import GSF_boussinesq_equations
 # configure GSF equations
 GSF = GSF_boussinesq_equations(nr=nr, nz=nz)
 GSF.set_parameters(mu, eta, Re, Lz, Pr, N2)
@@ -87,6 +79,8 @@ if GSF.domain.distributor.rank == 0:
             diff_filename = os.path.join(data_dir,'diff.txt')
             with open(diff_filename,'w') as file:
                 file.write(GSF.hg_diff)
+
+logger.info("saving run in: {}".format(data_dir))
 
 ts = de.timesteppers.RK443
 solver= problem.build_solver(ts)
