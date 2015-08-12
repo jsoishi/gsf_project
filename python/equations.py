@@ -120,7 +120,7 @@ class Equations():
         self.problem.substitutions['vel_sum_sq'] = 'u**2 + v**2 + w**2'
 
         # NB: this problem assumes delta = R2 - R1 = 1 
-        self.problem.substitutions['plane_avg(A)'] = 'integ(A, "z")'
+        self.problem.substitutions['plane_avg(A)'] = 'integ(A, "z")/Lz'
         self.problem.substitutions['vol_avg(A)']   = 'integ(A)/Lz'
         self.problem.substitutions['KE'] = 'vel_sum_sq/2'
         self.problem.substitutions['u_rms'] = 'sqrt(u*u)'
