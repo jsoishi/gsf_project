@@ -60,7 +60,7 @@ if __name__ == "__main__":
     if not args['--output']:
         p = pathlib.Path(args['<files>'][0])
         print(p)
-        basepath = pathlib.Path(args['<files>'][0]).parts[-3]
+        basepath = pathlib.Path('scratch',pathlib.Path(args['<files>'][0]).parts[-3])
         basepath = pathlib.Path(basepath)
     else:
         basepath = pathlib.Path(args['--output']).absolute()
