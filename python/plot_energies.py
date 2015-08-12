@@ -2,11 +2,11 @@
 Plot energies from joint analysis files.
 
 Usage:
-    plot_energies.py <files>... [--output=<dir>]
+    plot_energies.py <files>... [--output=<dir> --omega1=<omega1>]
 
 Options:
-    --output=<dir>  Output directory
-
+    --output=<dir>    Output directory
+    --omega1=<omega1> inner rotation freqency   [default: 0.010101010101010102]
 """
 import numpy as np
 import h5py
@@ -48,12 +48,11 @@ def read_timeseries(files, verbose=False):
 
     return ts
 
-def plot_energies(energies, t, output_path='./', calc_growth_rate=False):
+def plot_energies(energies, t, period,output_path='./', calc_growth_rate=False):
     [KE, w_rms] = energies
 
     figs = {}
     
-    period = 14.151318259413486
     print("period = {}".format(period))
     fig_energies = plt.figure(figsize=(16,8))
     ax1 = fig_energies.add_subplot(2,1,1)
@@ -63,9 +62,6 @@ def plot_energies(energies, t, output_path='./', calc_growth_rate=False):
     ax2.semilogy(t/period, w_rms, label=r"$w_{rms}$")
     if calc_growth_rate:
         gamma_w, log_w0 = compute_growth(w_rms, t, period)
-   
-
-        
         ax2.semilogy(t/period, np.exp(log_w0)*np.exp(gamma_w*t), 'k-.', label='$\gamma_w = %f$' % gamma_w)
         ax2.legend(loc='lower right').draw_frame(False)
 
@@ -100,7 +96,6 @@ if __name__ == "__main__":
 
     args = docopt(__doc__)
 
-
     if not args['--output']:
         print('hello?')
         p = pathlib.Path(args['<files>'][0])
@@ -117,8 +112,11 @@ if __name__ == "__main__":
                 output_path.mkdir()
     print(output_path)
 
+    omega1 = float(args['--omega1'])
+    period = 2*np.pi/omega1
+
     files = args['<files>']
     ts = read_timeseries(files)
-    plot_energies([ts['KE'], ts['w_rms']], ts['time'], output_path=output_path)
+    plot_energies([ts['KE'], ts['w_rms']], ts['time'], period, output_path=output_path)
 
 
