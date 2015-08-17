@@ -49,7 +49,7 @@ def read_timeseries(files, verbose=False):
     return ts
 
 def plot_energies(energies, t, period,output_path='./', calc_growth_rate=False):
-    [KE, w_rms] = energies
+    [KE, u_rms, w_rms] = energies
 
     figs = {}
     
@@ -59,7 +59,11 @@ def plot_energies(energies, t, period,output_path='./', calc_growth_rate=False):
     ax2 = fig_energies.add_subplot(2,1,2)
     #ax1.semilogy(t/period, KE, label="KE")
     ax1.plot(t/period, KE, label="KE")
+    ax1.set_ylabel(r"$E_{kin}$", fontsize=20)
     ax2.semilogy(t/period, w_rms, label=r"$w_{rms}$")
+    ax2.semilogy(t/period, u_rms, label=r"$u_{rms}$")
+    ax2.set_ylabel(r"$< w >_{rms}$", fontsize=20)
+    ax2.set_xlabel(r"$t/t_{1}$", fontsize=20)
     if calc_growth_rate:
         gamma_w, log_w0 = compute_growth(w_rms, t, period)
         ax2.semilogy(t/period, np.exp(log_w0)*np.exp(gamma_w*t), 'k-.', label='$\gamma_w = %f$' % gamma_w)
@@ -117,6 +121,6 @@ if __name__ == "__main__":
 
     files = args['<files>']
     ts = read_timeseries(files)
-    plot_energies([ts['KE'], ts['w_rms']], ts['time'], period, output_path=output_path)
+    plot_energies([ts['KE'], ts['u_rms'], ts['w_rms']], ts['time'], period, output_path=output_path)
 
 
