@@ -99,7 +99,7 @@ if restart is None:
     rand = np.random.RandomState(seed=42)
     noise = rand.standard_normal(gshape)[slices]
 
-    A0 = 1e-3
+    A0 = 1e-5
 
     # ICs
     u = solver.state['u']
