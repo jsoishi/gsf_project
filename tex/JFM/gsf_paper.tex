@@ -1,0 +1,124 @@
+
+\documentclass{jfm}
+
+\begin{document}
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+
+\shorttitle{Nonlinear Goldreich-Schubert-Fricke} %for header on odd pages
+\shortauthor{J. S. Oishi et al} %for header on even pages
+
+\title{GSF Simulations}
+
+\author
+ {
+ Jeffrey S. Oishi\aff{1}
+  \corresp{\email{oishij@farmingdale.edu}},
+  Keaton Burns\aff{2},
+  Daniel Lecoanet\aff{3},
+  Geoffrey Vasil\aff{4},
+  Ben Brown\aff{5},
+  Susan E. Clark\aff{6}
+  }
+
+\affiliation
+{
+\aff{1}
+Department of Physics, Farmingdale State University, Farmingdale, NY 11735
+\aff{2}
+Department of Physics, Massachussetts Institute of Technology, Cambridge, MA 02139
+\aff{3}
+Department of Astronomy, University of California, Berkeley, Berkeley, CA 94720
+\aff{4}
+School of Mathematics \& Statistics, University of Sydney, NSW 2006, Australia
+\aff{5}
+Laboratory for Atmospheric \& Space Physics and Department of Astrophysical \& Planetary Sciences, University of Colorado, Boulder, Colorado 80309, USA
+\aff{6}
+Department of Astronomy, Columbia University, New York, NY 10024
+
+}
+
+\maketitle
+
+\begin{abstract}
+Dedalus simulations of the GSF!
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+\section{The Model}
+\label{sec:model}
+
+In order to study the GSF, we use a simplified equation set designed
+to capture the relevant physics in a simple, controlled numerical
+experient. We use the Spiegel-Veronis Boussinesq approximation for
+radially stratified, compressible, perfect gasses,
+\begin{equation}
+  \label{eq:continuity}
+  \mathbf{\nabla \cdot v} = 0,
+\end{equation}
+\begin{equation}
+  \label{eq:momentum}
+  \frac{\partial \mathbf{v}}{\partial t} + \mathbf{v \cdot \nabla v} = -\frac{\mathbf{\nabla} p}{\rho_m} + g \frac{T'}{T_m}\mathbf{\hat{r}} + \nu \nabla^2 \mathbf{v},
+\end{equation}
+and
+\begin{equation}
+  \label{eq:temp}
+  \frac{\partial T'}{\partial t} + \mathbf{v \cdot \nabla} T' + u \left(\frac{d T_m}{dr} - \left(\frac{d T_m}{dr}\right)_{ad}\right) = \chi \nabla^2 T'.
+\end{equation}
+In the above equations, we have separated the variables into mean and
+fluctuating quantities, e.g. $T(r, \theta, z) = T_m(r) + T'(r, \theta, z)$, and $(d T_m/dr)_{ad}$ is the
+adiabatic background gradient.
+
+We can simplify these equations by noting that the Brunt-V\"ais\"al\"a frequency can be written as
+\begin{equation}
+  \label{eq:brunt}
+  N^2 = \frac{g}{T}\left[\frac{d T}{dr} - \left(\frac{d T}{dr}\right)_{ad}\right],
+\end{equation}
+and by creating a new variable $\Theta \equiv g T'/T_m$. Equations~(\ref{eq:momentum}) and (\ref{eq:temp}) can then be rewritten as 
+\begin{equation}
+  \label{eq:final_momentum}
+  \frac{\partial \mathbf{v}}{\partial t} + \mathbf{v \cdot \nabla v} = -\frac{\mathbf{\nabla} p}{\rho_m} + g \Theta \mathbf{\hat{r}} + \nu \nabla^2 \mathbf{v},
+\end{equation}
+and
+\begin{equation}
+  \label{eq:final_temp}
+  \frac{\partial \Theta}{\partial t} + \mathbf{v \cdot \nabla} \Theta + N^2 u = \chi \nabla^2 \Theta.
+\end{equation}
+
+The exact equations as entered in our numerical framework Dedalus (see
+section~\ref{sec:numerical} for details) can be found in
+Appendix~\ref{sec:appendix_dedalus}.
+
+We consider these equations in a cylindrical Taylor-Couette geometry
+periodic in the axial ($z$) direction, with impenetrable, no-slip
+walls in $r$. The equations are non-dimensionalized in terms of the
+gap width $[L] = \delta = R_2 -R_1$, where the subscripts 1 and 2
+refer to the inner and outer cylinders, respectively. We measure
+velocities in units of the inner cylinder velocity,
+$[V] = R_1 \Omega_1$, with $\Omega_1$ the inner cylinder rotation
+rate. 
+
+\section{Linear Analysis}
+\label{sec:linear}
+
+\section{Numerical Methods}
+\label{sec:numerical}
+
+
+Acknowledgements should be included at the end of the paper, before
+the References section or any appendicies, and should be a separate
+paragraph without a heading. Several anonymous individuals are thanked
+for contributions to these instructions.
+
+\appendix
+\section{Exact Dedalus Equations}
+\label{sec:appendix_dedalus}
+The exact equations entered in Dedalus are 
+
+\bibliography{jfm-references}
+\bibliographystyle{jfm}
+
+\end{document}
