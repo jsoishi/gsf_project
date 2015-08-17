@@ -25,7 +25,7 @@
 \affiliation
 {
 \aff{1}
-Department of Physics, Farmingdale State University, Farmingdale, NY 11735
+Department of Physics, Farmingdale State College, Farmingdale, NY 11735
 \aff{2}
 Department of Physics, Massachussetts Institute of Technology, Cambridge, MA 02139
 \aff{3}
@@ -66,7 +66,7 @@ radially stratified, compressible, perfect gasses,
 and
 \begin{equation}
   \label{eq:temp}
-  \frac{\partial T'}{\partial t} + \mathbf{v \cdot \nabla} T' + u \left(\frac{d T_m}{dr} - \left(\frac{d T_m}{dr}\right)_{ad}\right) = \chi \nabla^2 T'.
+  \frac{\partial T'}{\partial t} + \mathbf{v \cdot \nabla} T' + u \left[\frac{d T_m}{dr} - \left(\frac{d T_m}{dr}\right)_{ad}\right] = \chi \nabla^2 T'.
 \end{equation}
 In the above equations, we have separated the variables into mean and
 fluctuating quantities, e.g. $T(r, \theta, z) = T_m(r) + T'(r, \theta, z)$, and $(d T_m/dr)_{ad}$ is the
@@ -92,7 +92,7 @@ The exact equations as entered in our numerical framework Dedalus (see
 section~\ref{sec:numerical} for details) can be found in
 Appendix~\ref{sec:appendix_dedalus}.
 
-We consider these equations in a cylindrical Taylor-Couette geometry
+We consider these equations in a cylindrical Taylor-Couette (TC) geometry
 periodic in the axial ($z$) direction, with impenetrable, no-slip
 walls in $r$. The equations are non-dimensionalized in terms of the
 gap width $[L] = \delta = R_2 -R_1$, where the subscripts 1 and 2
@@ -101,8 +101,27 @@ velocities in units of the inner cylinder velocity,
 $[V] = R_1 \Omega_1$, with $\Omega_1$ the inner cylinder rotation
 rate. 
 
+We define $\Rey = R_1 \Omega_1 \delta/\nu$, so in our non-dimensional
+formulation, $\Rey = 1/\nu$. It is also helpful to consider the epicyclic frequency, 
+\begin{equation}
+  \label{eq:epicyclic_freq}
+\kappa^2 = \frac{1}{r^3}\frac{d (r^2 \Omega_0)^2}{dr}
+\end{equation}
+of the background Couette flow, $\Omega_0 = A + B/r^2$. $A$ and $B$
+are computed from the parameters $\eta = R_1/R_2$ and
+$\mu = \Omega_2/\Omega_1$, characterizing the geometry and
+differential rotation of the system. For Couette flow, we can write 
+\begin{equation}
+  \label{eq:kappa_couette}
+  \kappa^2 = - 4 \Omega_1^2 \eta^2
+  \frac{(1-\mu)(1-\mu/\eta^2)}{(1-\eta^2)^2}
+  \left[\frac{R_2^2}{r^2} -\frac{(1-\mu/\eta^2)}{(1-\mu)} \right].
+\end{equation}
+
 \section{Linear Analysis}
 \label{sec:linear}
+The linear properties of the GSF are well documented in GS67 and
+F68. Here, we summarize their dispersion relation 
 
 \section{Numerical Methods}
 \label{sec:numerical}
