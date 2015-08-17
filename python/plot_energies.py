@@ -48,7 +48,7 @@ def read_timeseries(files, verbose=False):
 
     return ts
 
-def plot_energies(energies, t, period,output_path='./', calc_growth_rate=False):
+def plot_energies(energies, t, period,output_path='./', calc_growth_rate=False, growth_start=1, growth_stop=2):
     [KE, u_rms, w_rms] = energies
 
     figs = {}
@@ -65,8 +65,8 @@ def plot_energies(energies, t, period,output_path='./', calc_growth_rate=False):
     ax2.set_ylabel(r"$< w >_{rms}$", fontsize=20)
     ax2.set_xlabel(r"$t/t_{1}$", fontsize=20)
     if calc_growth_rate:
-        gamma_w, log_w0 = compute_growth(w_rms, t, period)
-        ax2.semilogy(t/period, np.exp(log_w0)*np.exp(gamma_w*t), 'k-.', label='$\gamma_w = %f$' % gamma_w)
+        gamma_w, w0 = compute_growth(w_rms, t, period, growth_start, growth_stop)
+        ax2.semilogy(t/period, w0*np.exp(gamma_w*t), 'k-.', label='$\gamma_w/\Omega_1 = %f$' % (gamma_w*period/(2*np.pi)))
         ax2.legend(loc='lower right').draw_frame(False)
 
     figs["energies"]=fig_energies
@@ -76,19 +76,29 @@ def plot_energies(energies, t, period,output_path='./', calc_growth_rate=False):
         outfile = str(output_path.joinpath('scalar_{}.png'.format(key)))
         figs[key].savefig(outfile)
     
-def compute_growth(wrms, t, period, g_scale=80., verbose=True):
-    t_window = (t/period > 2) & (t/period < 8)
+def compute_growth(f, t, period, start, stop, g_scale=80., verbose=True):
+    """compute a growth rate gamma for given timeseries f sampled at
+    points t, assuming an exponential growth:
+    
+    f(t) = f0 exp(gamma t)
 
-    gamma_w, log_w0 = np.polyfit(t[t_window], np.log(wrms[t_window]),1)
+    inputs:
+    f -- timeseries
+    t -- time points
+    period -- the unit for t
+    start -- beginning of timeseries to fit in units of period
+    stop -- end of timeseries to fit in units of period
 
-    if verbose:
-        gamma_w_scaled = gamma_w*g_scale
-        gamma_barenghi = 0.430108693
-        rel_error_barenghi = (gamma_barenghi - gamma_w_scaled)/gamma_barenghi
-        print("gamma_w_scaled: {:10.5e}".format(gamma_w_scaled))
-        print("rel_error: {:10.5e}".format(rel_error_barenghi))
+    outputs:
+    f0 -- t=0 value
+    gamma -- growth rate
 
-    return gamma_w, log_w0
+    """
+    t_window = (t/period > start) & (t/period < stop)
+
+    gamma_f, log_f0 = np.polyfit(t[t_window], np.log(f[t_window]),1)
+
+    return gamma_f, np.exp(log_f0)
 
 if __name__ == "__main__":
 
@@ -121,6 +131,6 @@ if __name__ == "__main__":
 
     files = args['<files>']
     ts = read_timeseries(files)
-    plot_energies([ts['KE'], ts['u_rms'], ts['w_rms']], ts['time'], period, output_path=output_path)
+    plot_energies([ts['KE'], ts['u_rms'], ts['w_rms']], ts['time'], period, output_path=output_path,calc_growth_rate=True)
 
 
