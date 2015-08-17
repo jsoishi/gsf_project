@@ -15,7 +15,7 @@ import os
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+plt.style.use('ggplot')
 def read_timeseries(files, verbose=False):
     """Read one-dimensional (f(t)) time series data from Dedalus outputfiles.
 
