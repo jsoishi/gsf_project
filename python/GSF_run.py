@@ -102,29 +102,20 @@ if restart is None:
     A0 = 1e-5
 
     # ICs
-    u = solver.state['u']
-    ur = solver.state['ur']
     v = solver.state['v']
     vr = solver.state['vr']
-    w = solver.state['w']
-    wr = solver.state['wr']
+    T = solver.state['T']
+    Tr = solver.state['Tr']
     r = GSF.domain.grid(-1,scales=GSF.domain.dealias)
     r_in = GSF.R1
 
     v['g'] = GSF.calc_v0()
     v.differentiate('r',out=vr)
 
-    ## add perturbations
-    phi = GSF.domain.new_field(name='phi')
-    phi.set_scales(GSF.domain.dealias, keep_data=False)
-
-    phi['g'] = A0 * noise
-    phi.differentiate('r',out=u)
-    u['g'] *= -1*np.sin(np.pi*(r - r_in))
-    phi.differentiate('z',out=w)
-    w['g'] *= np.sin(np.pi*(r - r_in))
-    u.differentiate('r',out=ur)
-    w.differentiate('r',out=wr)
+    ## add perturbations to temperature
+    T.set_scales(GSF.domain.dealias, keep_data=False)
+    T['g'] = A0 * noise * np.sin(np.pi*(r-r_in))
+    T.differentiate('r',out=Tr)
 
     write = 0
     dt = 1e-3
