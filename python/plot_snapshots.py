@@ -18,15 +18,16 @@ import matplotlib.pyplot as plt
 
 from plot_energies import read_timeseries
 
-def create_frame(r, z, u, v, w, T, time):
+def create_frame(r, z, u, v, w, T, time, quiver=False):
     fig = plt.figure(figsize=(16,12))
     ax = fig.add_axes([0.1,0.1,0.35,0.8])
-    img = ax.pcolormesh(r, z,v,cmap='PuOr')
+    img = ax.pcolormesh(r, z,v,cmap='YlGnBu')
     img.axes.axis('image')
     ax.set_title('t = {:10.5e}'.format(time),fontsize=24)
 
     skip = (slice(None, None, 3), slice(None, None, 3))
-    ax.quiver(r[skip[0]], z[skip[0]], u[skip], w[skip], width=0.005)
+    if quiver:
+        ax.quiver(r[skip[0]], z[skip[0]], u[skip], w[skip], width=0.005)
     cb = fig.colorbar(img, pad=0.005)
     cb_ax = cb.ax
 
