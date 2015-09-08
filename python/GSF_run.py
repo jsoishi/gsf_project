@@ -125,8 +125,13 @@ if restart is None:
     w['g'] *= np.sin(np.pi*(r - r_in))
     u.differentiate('r',out=ur)
     w.differentiate('r',out=wr)
+
+    write = 0
+    dt = 1e-3
 else:
     logger.info("restarting from {}".format(restart))
+
+    write, dt = solver.load_state(restart, -1)
     checkpoint.restart(restart, solver)
 
 omega1 = problem.parameters['v_l']/r_in
@@ -136,10 +141,10 @@ solver.stop_sim_time = 12.5*period
 solver.stop_wall_time = np.inf
 solver.stop_iteration = np.inf
 
-output_time_cadence = 0.1*period
-analysis_tasks = GSF.initialize_output(solver, data_dir, sim_dt=output_time_cadence)
+output_time_cadence = 0.01*period
+analysis_tasks = GSF.initialize_output(solver, data_dir, sim_dt=output_time_cadence, write_num=write)
 
-CFL = flow_tools.CFL(solver, initial_dt=1e-3, cadence=5, safety=0.3,
+CFL = flow_tools.CFL(solver, initial_dt=dt, cadence=5, safety=0.3,
                      max_change=1.5, min_change=0.5)
 CFL.add_velocities(('u', 'w'))
 
