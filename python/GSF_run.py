@@ -3,13 +3,13 @@ Dedalus script for 2D/3D GSF simulations
 
 
 Usage:
-    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --chi=<chi> --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nz=<nz>] 
+    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nz=<nz>] 
 
 Options:
     --Re=<Re>      Reynolds number [default: 80]
     --mu=<mu>      mu [default: 0]
     --N2=<N2>      Brunt-Vaisala squared (in units of Omega1) [default: 1]
-    --chi=<chi>    thermal diffusion [default: 1]
+    --no-chi       switch off thermal diffusion [default: False]
     --Pr=<Pr>      Prandtl Number [default: 0.3]
     --eta=<eta>    eta [default: 0.6925207756232687]
     --Lz=<Lz>      Lz  [default: 2.0074074463832545]
@@ -30,7 +30,7 @@ args = docopt(__doc__)
 mu = float(args['--mu'])
 Re = float(args['--Re'])
 eta = float(args['--eta'])
-chi = float(args['--chi'])
+nochi = args['--no-chi']
 Pr  = float(args['--Pr'])
 N2 = float(args['--N2'])
 Lz = float(args['--Lz'])
@@ -43,6 +43,9 @@ restart = args['--restart']
 # save data in directory named after script
 data_dir = "scratch/" + sys.argv[0].split('.py')[0]
 data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_nz{5:d}/".format(Re, mu, eta, Pr, N2, nz)
+if nochi:
+    data_dir = data_dir.strip("/")
+    data_dir += "_nochi/"
 
 from dedalus.tools.config import config
 
@@ -63,6 +66,11 @@ except ImportError:
     do_checkpointing=False
 
 from equations import GSF_boussinesq_equations
+
+if nochi:
+    logger.warn("Overriding Pr!")
+    Pr = 1e4
+
 # configure GSF equations
 GSF = GSF_boussinesq_equations(nr=nr, nz=nz)
 GSF.set_parameters(mu, eta, Re, Lz, Pr, N2)
@@ -123,12 +131,14 @@ else:
     logger.info("restarting from {}".format(restart))
 
     write, dt = solver.load_state(restart, -1)
-    checkpoint.restart(restart, solver)
 
 omega1 = problem.parameters['v_l']/r_in
 period = 2*np.pi/omega1
 
 solver.stop_sim_time = 12.5*period
+#solver.stop_sim_time = 2*period
+if nochi:
+    solver.stop_sim_time = 2.*period
 solver.stop_wall_time = np.inf
 solver.stop_iteration = np.inf
 

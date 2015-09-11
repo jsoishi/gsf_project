@@ -108,7 +108,6 @@ if __name__ == "__main__":
     args = docopt(__doc__)
 
     if not args['--output']:
-        print('hello?')
         p = pathlib.Path(args['<files>'][0])
         print(p)
         output_path = pathlib.Path('scratch',pathlib.Path(args['<files>'][0]).parts[-3])
