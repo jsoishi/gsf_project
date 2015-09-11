@@ -66,6 +66,7 @@ except ImportError:
     do_checkpointing=False
 
 from equations import GSF_boussinesq_equations
+from filter_field import filter_field
 
 if nochi:
     logger.warn("Overriding Pr!")
@@ -122,7 +123,9 @@ if restart is None:
 
     ## add perturbations to temperature
     T.set_scales(GSF.domain.dealias, keep_data=False)
-    T['g'] = A0 * noise * np.sin(np.pi*(r-r_in))
+    T['g'] = noise 
+    filter_field(T,frac=0.5)
+    T['g'] *= A0 * np.sin(np.pi*(r-r_in))
     T.differentiate('r',out=Tr)
 
     write = 0
@@ -136,7 +139,7 @@ omega1 = problem.parameters['v_l']/r_in
 period = 2*np.pi/omega1
 
 solver.stop_sim_time = 12.5*period
-#solver.stop_sim_time = 2*period
+
 if nochi:
     solver.stop_sim_time = 2.*period
 solver.stop_wall_time = np.inf
