@@ -3,7 +3,7 @@ Dedalus script for 2D/3D GSF simulations
 
 
 Usage:
-    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nz=<nz>] 
+    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nz=<nz> --filter=<filter>] 
 
 Options:
     --Re=<Re>      Reynolds number [default: 80]
@@ -15,6 +15,7 @@ Options:
     --Lz=<Lz>      Lz  [default: 2.0074074463832545]
     --restart=<restart_file>   Restart from checkpoint
     --nz=<nz>                  vertical z (Fourier) resolution [default: 32]
+    --filter=<filter>          fraction of modes to keep in ICs [default:0.5]
 """
 import logging
 import os
@@ -34,6 +35,7 @@ nochi = args['--no-chi']
 Pr  = float(args['--Pr'])
 N2 = float(args['--N2'])
 Lz = float(args['--Lz'])
+filter_frac = float(args['--filter'])
 
 nz = int(args['--nz'])
 nr = nz
@@ -42,7 +44,7 @@ restart = args['--restart']
 
 # save data in directory named after script
 data_dir = "scratch/" + sys.argv[0].split('.py')[0]
-data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_nz{5:d}/".format(Re, mu, eta, Pr, N2, nz)
+data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_filter{5:5.02e}_nz{6:d}/".format(Re, mu, eta, Pr, N2, filter_frac,nz)
 if nochi:
     data_dir = data_dir.strip("/")
     data_dir += "_nochi/"
@@ -124,7 +126,10 @@ if restart is None:
     ## add perturbations to temperature
     T.set_scales(GSF.domain.dealias, keep_data=False)
     T['g'] = noise 
-    filter_field(T,frac=0.5)
+    if filter_frac != 1.: 
+        filter_field(T,frac=filter_frac)
+    else:
+        logger.warn("No filtering applied to ICs! This is probably bad!")
     T['g'] *= A0 * np.sin(np.pi*(r-r_in))
     T.differentiate('r',out=Tr)
 
