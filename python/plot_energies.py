@@ -48,7 +48,7 @@ def read_timeseries(files, verbose=False):
 
     return ts
 
-def plot_energies(energies, t, period,output_path='./', calc_growth_rate=False, growth_start=1, growth_stop=2):
+def plot_energies(energies, t, period,basename, output_path='./', calc_growth_rate=False, growth_start=1, growth_stop=2):
     [KE, u_rms, w_rms] = energies
 
     figs = {}
@@ -70,7 +70,7 @@ def plot_energies(energies, t, period,output_path='./', calc_growth_rate=False, 
 
 
     for key in figs.keys():
-        outfile = str(output_path.joinpath('scalar_{}.png'.format(key)))
+        outfile = str(output_path.joinpath('{}_{}.png'.format(basename,key)))
         figs[key].savefig(outfile)
     
 def compute_growth(f, t, period, start, stop, g_scale=80., verbose=True):
@@ -107,10 +107,11 @@ if __name__ == "__main__":
 
     args = docopt(__doc__)
 
+    p = pathlib.Path(args['<files>'][0])
+    basename = p.parts[-3]
+    print(basename)
     if not args['--output']:
-        p = pathlib.Path(args['<files>'][0])
-        print(p)
-        output_path = pathlib.Path('scratch',pathlib.Path(args['<files>'][0]).parts[-3])
+        output_path = pathlib.Path('scratch',p.parts[-3])
         output_path = pathlib.Path(output_path)
     else:
         output_path = pathlib.Path(args['--output']).absolute()
@@ -127,6 +128,6 @@ if __name__ == "__main__":
 
     files = args['<files>']
     ts = read_timeseries(files)
-    plot_energies([ts['KE'], ts['u_rms'], ts['w_rms']], ts['time'], period, output_path=output_path,calc_growth_rate=True)
+    plot_energies([ts['KE'], ts['u_rms'], ts['w_rms']], ts['time'], period, basename, output_path=output_path,calc_growth_rate=True)
 
 
