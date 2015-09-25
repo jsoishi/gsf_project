@@ -48,6 +48,7 @@ class Equations():
         self.set_continuity()
         self.set_momentum()
         self.set_energy()
+        self.set_tracer()
 
     def initialize_output(self, solver ,data_dir, **kwargs):
         self.analysis_tasks = []
@@ -166,7 +167,7 @@ class TC_equations(Equations):
     scale [V] = R1 Omega1
     """
 
-    def __init__(self, nr=32, ntheta=0, nz=32, grid_dtype=np.float64, dealias=3/2):
+    def __init__(self, nr=32, ntheta=0, nz=32, grid_dtype=np.float64, dealias=3/2, tracer=False):
         super(TC_equations,self).__init__()
         self.nr = nr 
         self.ntheta = ntheta
@@ -179,8 +180,12 @@ class TC_equations(Equations):
         self.grid_dtype = grid_dtype
         self.dealias = dealias
 
+        self.tracer = tracer
+
         self.equation_set = 'incompressible TC'
         self.variables = ['u','ur','v','vr','w','wr','p']
+        if self.tracer:
+            self.variables += ['c','cr']
 
     def _set_domain(self):
         """
@@ -210,17 +215,21 @@ class TC_equations(Equations):
         
         return [r_basis,]
 
-    def set_parameters(self, mu, eta, Re1, Lz):
+    def set_parameters(self, mu, eta, Re1, Lz, Sc=1):
         self.mu = mu 
         self.eta = eta
         self.Re1 = Re1
         self.Lz = Lz
+        self.Sc = Sc
 
         self.R1 = self.eta/(1. - self.eta)
         self.R2 = 1./(1-self.eta)
         self.Omega1 = 1/self.R1
         self.Omega2 = self.mu*self.Omega1
         self.nu = self.R1 * self.Omega1/self.Re1
+
+        #dye diffusivity 
+        self.nu_dye = self.nu/self.Sc
 
         self._eqn_params = {}
         self._eqn_params['nu'] = self.nu
@@ -264,18 +273,26 @@ class TC_equations(Equations):
         self.problem.add_equation("ur - dr(u) = 0")
         self.problem.add_equation("vr - dr(v) = 0")
         self.problem.add_equation("wr - dr(w) = 0")
+        if self.tracer:
+            self.problem.add_equation("cr - dr(c) = 0")
 
     def set_energy(self):
         pass
+
+    def set_tracer(self):
+        if self.tracer:
+            self.problem.add_equation("dt(c) - nu_dye*Lap_s(c, cr) = UdotGrad_s(c, cr)")
 
 class GSF_boussinesq_equations(TC_equations):
     def __init__(self, *args, **kwargs):
         super(GSF_boussinesq_equations,self).__init__(*args, **kwargs)
         self.equation_set = 'Spiegel-Veronis Compressible Boussinesq'
         self.variables = ['u','ur','v','vr','w','wr','T','Tr','p']
+        if self.tracer:
+            self.variables += ['c','cr']
 
-    def set_parameters(self, mu, eta, Re1, Lz, Pr, N2):
-        super(GSF_boussinesq_equations, self).set_parameters(mu, eta, Re1, Lz)
+    def set_parameters(self, mu, eta, Re1, Lz, Pr, N2, Sc=1):
+        super(GSF_boussinesq_equations, self).set_parameters(mu, eta, Re1, Lz, Sc=Sc)
         self.N2 = N2*self.Omega1**2
         self.Pr = Pr
         self.chi = self.nu/self.Pr
