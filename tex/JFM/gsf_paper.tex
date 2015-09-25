@@ -6,6 +6,8 @@
 \newtheorem{lemma}{Lemma}
 \newtheorem{corollary}{Corollary}
 
+%% \Rey, \Pran and \Pen are defined by template
+\newcommand\Sch{\mbox{\textit{Sc}}} % Prandtl number, cf TeX's \Pr product
 \shorttitle{Nonlinear Goldreich-Schubert-Fricke} %for header on odd pages
 \shortauthor{J. S. Oishi et al} %for header on even pages
 
@@ -89,6 +91,14 @@ and
   \frac{\partial \Theta}{\partial t} + \mathbf{v \cdot \nabla} \Theta + N^2 u = \chi \nabla^2 \Theta.
 \end{equation}
 
+In addition to dynamical variables, we track the evolution of a dye concentration field $c$, which follows 
+\begin{equation}
+  \label{eq:dye}
+  \frac{\partial c}{\partial t} + \mathbf{\nabla \cdot} (c \mathbf{u}) = \nu_{dye} \nabla^2 c.
+\end{equation}
+
+In all calculations, the Schmidt number $\Sch \equiv \nu/\nu_{dye} = 1$.
+
 The exact equations as entered in our numerical framework Dedalus (see
 section~\ref{sec:numerical} for details) can be found in
 Appendix~\ref{sec:appendix_dedalus}.
@@ -128,6 +138,37 @@ F68. Here, we summarize their dispersion relation
 \label{sec:numerical}
 We use the Dedalus framework (available for download at
 http://dedalus-project.org). 
+
+We initialize our simulations with Couette flow in $v$ and
+low-amplitude Gaussian white noise in $\Theta$ with a sharp cutoff at
+$k_r/k_{max} > 0.3$ and $k_z/k_{max} > 0.3$. The cutoff prevents
+unresolved oscillations from polluting the calculation.
+
+\section{Results}
+\label{sec:results}
+
+First, we consider a fiducial case, with $\Rey = 10^6$,
+$\Pran = 10^{-2}$, $\mu = 0.9425$, $N^2 = 15.5$, and $\eta = 0.99$. The
+fiducial run has resolution $256^2$. 
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../../figs/rms_vel_re1.00e+06_mu9.43e-01_eta9.90e-01_Pr1.00e-02_N21.55e+01_nz256.png}
+  \caption{RMS velocities $<u>_{rms}$ and $<w>_{rms}$ as a function of time for the fidicial run. }
+  \label{fig:fid_energies}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{../../figs/vel_frame_0155_re1.00e+06_mu9.43e-01_eta9.90e-01_Pr1.00e-02_N21.55e+01_nz256.png}
+  \caption{$v$ and $\Theta$ in the fiducial run after saturation but before the development of the mean flow.}
+  \label{fig:fiducial_slice_early}
+\end{figure}
+\subsection{Mixing}
+\label{sec:mixing}
+
+\subsection{Mean Flow}
+\label{sec:meanflow}
 
 
 We thank Mordecai-Mark Mac Low and Alex Hubbard for useful
