@@ -33,15 +33,15 @@ def read_timeseries(files, verbose=False):
     f = h5py.File(data_files[0],flag='r')
     ts = {}
     for key in f['tasks'].keys():
-        ts[key] = np.array([])
+        ts[key] = f['tasks'][key][:]
 
-    ts['time'] = np.array([])
+    ts['time'] = f['scales']['sim_time'][:]
     f.close()
 
-    for filename in data_files:
+    for filename in data_files[1:]:
         f = h5py.File(filename, flag='r')
         for k in f['tasks'].keys():
-            ts[k] = np.append(ts[k], f['tasks'][k][:])
+            ts[k] = np.append(ts[k], f['tasks'][k][:],axis=0)
 
         ts['time'] = np.append(ts['time'],f['scales']['sim_time'][:])
         f.close()
@@ -128,6 +128,6 @@ if __name__ == "__main__":
 
     files = args['<files>']
     ts = read_timeseries(files)
-    plot_energies([ts['KE'], ts['u_rms'], ts['w_rms']], ts['time'], period, basename, output_path=output_path,calc_growth_rate=True)
+    plot_energies([ts['KE'], ts['u_rms'], ts['w_rms']], ts['time'], period, basename, output_path=output_path,calc_growth_rate=True,growth_start=0.25,growth_stop=0.5)
 
 
