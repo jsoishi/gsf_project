@@ -7,6 +7,11 @@ Usage:
 Options:
     --output=<dir>  Output directory 
 
+notes: use 
+
+ffmpeg -framerate 20 -i write_%04d.png -s:v 1600x1200 -c:v libx264 -profile:v high -crf 20 -pix_fmt yuv420p gsf.mp4
+
+
 """
 import numpy as np
 import h5py
