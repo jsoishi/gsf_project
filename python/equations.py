@@ -105,6 +105,10 @@ class Equations():
 
         self.problem.add_bc("left(w) = 0")
         self.problem.add_bc("right(w) = 0")
+        
+        if self.tracer:
+            self.problem.add_bc("left(c) = 0")
+            self.problem.add_bc("right(c) = 0")
 
 
     def _set_subs(self):
@@ -233,6 +237,7 @@ class TC_equations(Equations):
 
         self._eqn_params = {}
         self._eqn_params['nu'] = self.nu
+        self._eqn_params['nu_dye'] = self.nu_dye
         self._eqn_params['v_l'] = self.R1*self.Omega1
         self._eqn_params['v_r'] = self.R2*self.Omega2
         self._eqn_params['Lz'] = self.Lz

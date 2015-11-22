@@ -3,13 +3,14 @@ Dedalus script for 2D/3D GSF simulations
 
 
 Usage:
-    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nz=<nz> --filter=<filter>] 
+    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --tracer --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nz=<nz> --filter=<filter>] 
 
 Options:
     --Re=<Re>      Reynolds number [default: 80]
     --mu=<mu>      mu [default: 0]
     --N2=<N2>      Brunt-Vaisala squared (in units of Omega1) [default: 1]
     --no-chi       switch off thermal diffusion [default: False]
+    --tracer       switch on tracer field [default: False]
     --Pr=<Pr>      Prandtl Number [default: 0.3]
     --eta=<eta>    eta [default: 0.6925207756232687]
     --Lz=<Lz>      Lz  [default: 2.0074074463832545]
@@ -32,6 +33,7 @@ mu = float(args['--mu'])
 Re = float(args['--Re'])
 eta = float(args['--eta'])
 nochi = args['--no-chi']
+tracer = args['--tracer']
 Pr  = float(args['--Pr'])
 N2 = float(args['--N2'])
 Lz = float(args['--Lz'])
@@ -43,12 +45,17 @@ nr = nz
 restart = args['--restart']
 
 # save data in directory named after script
-data_dir = "scratch/" + sys.argv[0].split('.py')[0]
-data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_filter{5:5.02e}_nz{6:d}/".format(Re, mu, eta, Pr, N2, filter_frac,nz)
-if nochi:
-    data_dir = data_dir.strip("/")
-    data_dir += "_nochi/"
-
+if restart:
+    data_dir = os.path.split(restart)[0]
+else:
+    data_dir = "scratch/" + sys.argv[0].split('.py')[0]
+    data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_filter{5:5.02e}_nz{6:d}/".format(Re, mu, eta, Pr, N2, filter_frac,nz)
+    if nochi:
+        data_dir = data_dir.strip("/")
+        data_dir += "_nochi/"
+    if tracer:
+        data_dir = data_dir.strip("/")
+        data_dir += "_tracer/"
 from dedalus.tools.config import config
 
 config['logging']['filename'] = os.path.join(data_dir,'dedalus_log')
@@ -75,7 +82,7 @@ if nochi:
     Pr = 1e4
 
 # configure GSF equations
-GSF = GSF_boussinesq_equations(nr=nr, nz=nz)
+GSF = GSF_boussinesq_equations(nr=nr, nz=nz,tracer=tracer)
 GSF.set_parameters(mu, eta, Re, Lz, Pr, N2)
 GSF.set_IVP_problem()
 GSF.set_BC()
@@ -139,6 +146,7 @@ else:
     logger.info("restarting from {}".format(restart))
 
     write, dt = solver.load_state(restart, -1)
+    logger.info("starting from write {0:} with dt={1:10.5e}".format(write,dt))
 
 omega1 = problem.parameters['v_l']/r_in
 period = 2*np.pi/omega1
