@@ -17,11 +17,11 @@
  {
  Jeffrey S. Oishi\aff{1}
   \corresp{\email{oishij@farmingdale.edu}},
+  Susan E. Clark\aff{6},
   Keaton Burns\aff{2},
   Daniel Lecoanet\aff{3},
   Geoffrey Vasil\aff{4},
   Ben Brown\aff{5},
-  Susan E. Clark\aff{6}
   }
 
 \affiliation
@@ -38,7 +38,6 @@ School of Mathematics \& Statistics, University of Sydney, NSW 2006, Australia
 Laboratory for Atmospheric \& Space Physics and Department of Astrophysical \& Planetary Sciences, University of Colorado, Boulder, Colorado 80309, USA
 \aff{6}
 Department of Astronomy, Columbia University, New York, NY 10024
-
 }
 
 \maketitle
@@ -50,6 +49,29 @@ Dedalus simulations of the GSF!
 \section{Introduction}
 \label{sec:intro}
 The Goldreich-Schubert-Fricke instability \citep{1967ApJ...150..571G}
+(hereafter GSF) is a doubly-diffusive instability in which a fluid
+stabilized against Rayleigh instability by stratification loses that
+stability because it loses heat much more rapidly than it loses
+momentum. It bears a strong resemblence to doubly-diffusive
+convection, in which warm salty water overlies cool fresh water. The
+warm, salty water loses heat much more rapidly than it loses salt, so
+it is destabilitzed.
+
+While the linear properties of the GSF are well known, having been
+extended by \citet{1978RSPTA.289..459A}, its nonlinear saturation has
+not been the subject of considerable study.
+
+
+$\partial (r^2 \Omega)/\partial r > 0$ or
+$\partial \Omega / \partial z > 0$. 
+
+Recently, the GSF has been implicated as a potential source of angular
+momentum transport in astrophysical accretion disks too neutral to
+undergo magnetorotational instability. This possiblity arises because
+accretion disks have a vertical shear as well as a radial one, due to
+their thermal structure. This is often known as the ``vertical shear
+instability'' (VSI) in the accretion disk literature, though it is in
+fact the GSF.
 
 \section{The Model}
 \label{sec:model}
@@ -178,6 +200,27 @@ Farmingdale State College.
 \section{Exact Dedalus Equations}
 \label{sec:appendix_dedalus}
 The exact equations entered in Dedalus are 
+\begin{verbatim}
+"r*r*dt(u) - nu*Lap_r + r*r*dr(p) - r*r*T = -UdotGrad_r"
+r*r*dt(v) - nu*Lap_t = -UdotGrad_t"
+"r*dt(w) - nu*Lap_z + r*dz(p) = -UdotGrad_z"
+"r*dt(T) - r*chi*dr(Tr) - chi*Tr - r*chi*dz(dz(T))  + r*N2*u = -r*u*Tr - r*w*dz(T)"
+"Tr - dr(T) = 0"
+"ur - dr(u) = 0"
+"vr - dr(v) = 0"
+"wr - dr(w) = 0"
+\end{verbatim}
+with the auxiliary definitions
+\begin{verbatim}
+'Lap_s(f, f_r)' = "r*dr(f_r) + f_r + r*dz(dz(f))"
+'Lap_r' = "r*Lap_s(u, ur) - u"
+'Lap_t' = "r*Lap_s(v, vr) - v"
+'Lap_z' = "Lap_s(w,wr)"
+'UdotGrad_s(f, f_r)' = "r*u*f_r + r*w*dz(f)"
+'UdotGrad_r' = "r*UdotGrad_s(u, ur) - r*v*v"
+'UdotGrad_t' = "r*UdotGrad_s(v, vr) + r*u*v"
+'UdotGrad_z' = "UdotGrad_s(w, wr)"
+\end{verbatim}
 
 \bibliography{library_filtered2}
 \bibliographystyle{jfm}

@@ -28,7 +28,20 @@ def plot_spacetime(t, x, w):
     ax.set_xlim(0,t[-1])
     ax.set_xlabel(r'$t$',fontsize=24)
     ax.set_ylabel(r'$r$',rotation='horizontal',fontsize=24,labelpad=20)
-    cb_ax.set_ylabel(r'$w$',fontsize=24,rotation='horizontal',labelpad=20)
+    cb_ax.set_ylabel(r'$<w>$',fontsize=24,rotation='horizontal',labelpad=20)
+
+    return fig
+
+def plot_ztavg(t, x, w,start=0.):
+    fig = plt.figure(figsize=(16,8))
+    ax = fig.add_axes([0.1,0.1,0.8,0.8])
+    wavg = (w[(t > start)]).mean(axis=0)
+
+    
+    ax.plot(x,wavg)
+    ax.tick_params(labelsize=20)
+    ax.set_xlabel(r'$r$',fontsize=24)
+    ax.set_ylabel(r'$<w>$',rotation='horizontal',fontsize=24,labelpad=20)
 
     return fig
 
@@ -69,6 +82,9 @@ if __name__ == "__main__":
         r = f['scales']['r']['1.0'][:]
     
     fig = plot_spacetime(ts['time']/period, r, ts['w_rms'][:,0,:])
-
     outfile = output_path.joinpath('{}_w_spacetime.png'.format(basename))
+    fig.savefig(str(outfile))
+
+    fig = plot_ztavg(ts['time']/period, r, ts['w_rms'][:,0,:],start=8.)
+    outfile = output_path.joinpath('{}_w_ztavg.png'.format(basename))
     fig.savefig(str(outfile))
