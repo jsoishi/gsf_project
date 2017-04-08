@@ -3,7 +3,7 @@ Dedalus script for 2D/3D GSF simulations
 
 
 Usage:
-    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --tracer --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nz=<nz> --filter=<filter>] 
+    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --tracer --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nr=<nr> --ntheta=<ntheta> --nz=<nz> --filter=<filter> --mesh=<mesh>] 
 
 Options:
     --Re=<Re>      Reynolds number [default: 80]
@@ -15,8 +15,11 @@ Options:
     --eta=<eta>    eta [default: 0.6925207756232687]
     --Lz=<Lz>      Lz  [default: 2.0074074463832545]
     --restart=<restart_file>   Restart from checkpoint
+    --nr=<nr>                  radial r (Chebyshev) resolution [default: 32]
     --nz=<nz>                  vertical z (Fourier) resolution [default: 32]
-    --filter=<filter>          fraction of modes to keep in ICs [default:0.5]
+    --ntheta=<ntheta>          azimuthal theta (Fourier) resolution [default: 0]
+    --filter=<filter>          fraction of modes to keep in ICs [default: 0.5]
+    --mesh=<mesh>              processor mesh (you're in charge of making this consistent with nproc) [default: None]
 """
 import logging
 import os
@@ -39,23 +42,38 @@ N2 = float(args['--N2'])
 Lz = float(args['--Lz'])
 filter_frac = float(args['--filter'])
 
+nr = int(args['--nr'])
+ntheta = int(args['--ntheta'])
 nz = int(args['--nz'])
-nr = nz
 
 restart = args['--restart']
+mesh = args['--mesh']
+
+if mesh == 'None':
+    mesh = None
+else:
+    mesh = [int(i) for i in mesh.split(',')]
 
 # save data in directory named after script
+data_dir = "scratch/" + sys.argv[0].split('.py')[0]
+data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_filter{5:5.02e}_nr{6:d}_ntheta{7:d}_nz{8:d}/".format(Re, mu, eta, Pr, N2, filter_frac,nr, ntheta,nz)
+if nochi:
+    data_dir = data_dir.strip("/")
+    data_dir += "_nochi/"
+if tracer:
+    data_dir = data_dir.strip("/")
+    data_dir += "_tracer/"
+
 if restart:
-    data_dir = os.path.split(restart)[0]
-else:
-    data_dir = "scratch/" + sys.argv[0].split('.py')[0]
-    data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_filter{5:5.02e}_nz{6:d}/".format(Re, mu, eta, Pr, N2, filter_frac,nz)
-    if nochi:
-        data_dir = data_dir.strip("/")
-        data_dir += "_nochi/"
-    if tracer:
-        data_dir = data_dir.strip("/")
-        data_dir += "_tracer/"
+    restart_dirs = glob.glob(data_dir+"restart*")
+    if restart_dirs:
+        restart_dirs.sort()
+        last = int(re.search("_restart(\d+)", restart_dirs[-1]).group(1))
+        data_dir += "_restart{}".format(last+1)
+    else:
+        if os.path.exists(data_dir):
+            data_dir += "_restart1"
+
 from dedalus.tools.config import config
 
 config['logging']['filename'] = os.path.join(data_dir,'dedalus_log')
@@ -66,14 +84,6 @@ from dedalus.extras import flow_tools
 from dedalus.tools  import post
 logger = logging.getLogger(__name__)
 
-# use checkpointing if available
-try:
-    from dedalus.extras.checkpointing import Checkpoint
-    do_checkpointing=True
-except ImportError:
-    logger.warn("No Checkpointing module. Setting checkpointing to false.")
-    do_checkpointing=False
-
 from equations import GSF_boussinesq_equations
 from filter_field import filter_field
 
@@ -82,7 +92,7 @@ if nochi:
     Pr = 1e4
 
 # configure GSF equations
-GSF = GSF_boussinesq_equations(nr=nr, nz=nz,tracer=tracer)
+GSF = GSF_boussinesq_equations(nr=nr, ntheta=ntheta, nz=nz,tracer=tracer, mesh=mesh)
 GSF.set_parameters(mu, eta, Re, Lz, Pr, N2)
 GSF.set_IVP_problem()
 GSF.set_BC()
@@ -105,10 +115,6 @@ solver= problem.build_solver(ts)
 
 for k,v in problem.parameters.items():
     logger.info("problem parameter {}: {}".format(k,v))
-
-if do_checkpointing:
-    checkpoint = Checkpoint(data_dir)
-    checkpoint.set_checkpoint(solver, wall_dt=1800)
 
 if restart is None:
      # Random perturbations, need to initialize globally
@@ -134,7 +140,9 @@ if restart is None:
     T.set_scales(GSF.domain.dealias, keep_data=False)
     T['g'] = noise 
     if filter_frac != 1.: 
+        logger.info("Beginning filter")
         filter_field(T,frac=filter_frac)
+        logger.info("Finished filter")
     else:
         logger.warn("No filtering applied to ICs! This is probably bad!")
     T['g'] *= A0 * np.sin(np.pi*(r-r_in))
@@ -142,6 +150,7 @@ if restart is None:
 
     write = 0
     dt = 1e-3
+    logger.info("Finished initalization")
 else:
     logger.info("restarting from {}".format(restart))
 
@@ -160,12 +169,17 @@ solver.stop_iteration = np.inf
 
 output_time_cadence = 0.01*period
 analysis_tasks = GSF.initialize_output(solver, data_dir, sim_dt=output_time_cadence, write_num=write)
-
+logger.info("Starting CFL")
 CFL = flow_tools.CFL(solver, initial_dt=dt, cadence=5, safety=0.3,
                      max_change=1.5, min_change=0.5)
-CFL.add_velocities(('u', 'w'))
+if GSF.threeD:
+    CFL.add_velocities(('u', 'v', 'w'))
+else:
+    CFL.add_velocities(('u', 'w'))
+
 
 dt = CFL.compute_dt()
+logger.info("done CFL")
 # Main loop
 start_time = time.time()
 
@@ -183,9 +197,6 @@ logger.info('Iterations: %i' %solver.iteration)
 logger.info('Average timestep: %f' %(solver.sim_time/solver.iteration))
 
 logger.info('beginning join operation')
-if do_checkpointing:
-    logger.info(data_dir+'/checkpoint/')
-    post.merge_analysis(data_dir+'/checkpoint/')
 
 for task in analysis_tasks:
     logger.info(task.base_path)

@@ -52,6 +52,11 @@ class Equations():
 
     def initialize_output(self, solver ,data_dir, **kwargs):
         self.analysis_tasks = []
+        wall_dt_checkpoints = 3540. # 59 minutes
+        checkpoints = solver.evaluator.add_file_handler(os.path.join(data_dir,'checkpoints'), max_writes=50, wall_dt=wall_dt_checkpoints)
+        checkpoints.add_system(solver.state)
+        self.analysis_tasks.append(checkpoints)
+
         analysis_slice = solver.evaluator.add_file_handler(data_dir+"slices", max_writes=20, parallel=False, **kwargs)
         analysis_slice.add_task("u", name="u")
         analysis_slice.add_task("v", name="v")
@@ -126,7 +131,10 @@ class Equations():
 
         # NB: this problem assumes delta = R2 - R1 = 1 
         self.problem.substitutions['plane_avg(A)'] = 'integ(A, "z")/Lz'
-        self.problem.substitutions['vol_avg(A)']   = 'integ(A)/Lz'
+        if self.threeD:
+            self.problem.substitutions['vol_avg(A)']   = 'integ(A)/(pi*(R2**2 - R1**2)*Lz)'
+        else:
+            self.problem.substitutions['vol_avg(A)']   = 'integ(A)/Lz'
         self.problem.substitutions['KE'] = 'vel_sum_sq/2'
         self.problem.substitutions['u_rms'] = 'sqrt(u*u)'
         self.problem.substitutions['v_rms'] = 'sqrt(v*v)'
@@ -171,7 +179,7 @@ class TC_equations(Equations):
     scale [V] = R1 Omega1
     """
 
-    def __init__(self, nr=32, ntheta=0, nz=32, grid_dtype=np.float64, dealias=3/2, tracer=False):
+    def __init__(self, nr=32, ntheta=0, nz=32, grid_dtype=np.float64, dealias=3/2, tracer=False, mesh=None):
         super(TC_equations,self).__init__()
         self.nr = nr 
         self.ntheta = ntheta
@@ -180,6 +188,8 @@ class TC_equations(Equations):
             self.threeD = True
         else:
             self.threeD = False
+        if mesh:
+            self.mesh = mesh
 
         self.grid_dtype = grid_dtype
         self.dealias = dealias
@@ -202,15 +212,17 @@ class TC_equations(Equations):
         #    raise AttributeError("You must set parameters before constructing the domain.")
 
         bases = t_bases + r_basis
-        
-        self.domain = de.Domain(bases, grid_dtype=self.grid_dtype)        
+        if self.threeD and self.mesh:
+            self.domain = de.Domain(bases, grid_dtype=self.grid_dtype,mesh=self.mesh)        
+        else:
+            self.domain = de.Domain(bases, grid_dtype=self.grid_dtype)        
         
     def _set_transverse_bases(self):
         z_basis = de.Fourier(  'z', self.nz, interval=[0., self.Lz], dealias=self.dealias)
         trans_bases = [z_basis,]
         if self.threeD:
             theta_basis = de.Fourier('theta', self.ntheta, interval=[0., 2*np.pi], dealias=self.dealias)
-            trans_bases += theta_basis
+            trans_bases.append(theta_basis)
 
         return trans_bases
 
@@ -241,6 +253,9 @@ class TC_equations(Equations):
         self._eqn_params['v_l'] = self.R1*self.Omega1
         self._eqn_params['v_r'] = self.R2*self.Omega2
         self._eqn_params['Lz'] = self.Lz
+        self._eqn_params['R1'] = self.R1
+        self._eqn_params['R2'] = self.R2
+        self._eqn_params['pi'] = np.pi
 
     def calc_v0(self):
         r = self.domain.grid(-1)
