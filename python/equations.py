@@ -29,6 +29,7 @@ class Equations():
     def set_IVP_problem(self, *args, **kwargs):
         self._set_domain()
         self.problem = de.IVP(self.domain, variables=self.variables)
+        self.problem.meta[:]['r']['dirichlet'] = True
         self.set_equations(*args, **kwargs)
 
     def set_eigenvalue_problem(self, *args, **kwargs):
@@ -101,9 +102,9 @@ class Equations():
         else:
             self.problem.add_bc("right(u) = 0", condition="nz != 0")
         if self.threeD:
-            self.problem.add_bc("integ(p,'r') = 0", condition="ntheta == 0 and nz == 0")
+            self.problem.add_bc("right(p) = 0", condition="ntheta == 0 and nz == 0")
         else:
-            self.problem.add_bc("integ(p,'r') = 0", condition="nz == 0")
+            self.problem.add_bc("right(p) = 0", condition="nz == 0")
 
         self.problem.add_bc("left(v) = v_l")
         self.problem.add_bc("right(v) = v_r")
