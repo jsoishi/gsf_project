@@ -21,8 +21,8 @@ def read_timeseries(files, verbose=False):
 
     """
     data_files = sorted(files, key=lambda x: int(os.path.split(x)[1].split('.')[0].split('_s')[1]))
+    f = h5py.File(data_files[0],'r')
     if verbose:
-        f = h5py.File(data_files[0], flag='r')
         print(10*'-'+' tasks '+10*'-')
         for task in f['tasks']:
             print(task)
@@ -30,18 +30,17 @@ def read_timeseries(files, verbose=False):
         for key in f['scales']:
             print(key)
 
-    f = h5py.File(data_files[0],flag='r')
     ts = {}
     for key in f['tasks'].keys():
-        ts[key] = f['tasks'][key][:]
+        ts[key] = np.squeeze(f['tasks'][key][:])
 
     ts['time'] = f['scales']['sim_time'][:]
     f.close()
 
     for filename in data_files[1:]:
-        f = h5py.File(filename, flag='r')
+        f = h5py.File(filename)
         for k in f['tasks'].keys():
-            ts[k] = np.append(ts[k], f['tasks'][k][:],axis=0)
+            ts[k] = np.append(ts[k], np.squeeze(f['tasks'][k][:]),axis=0)
 
         ts['time'] = np.append(ts['time'],f['scales']['sim_time'][:])
         f.close()
@@ -60,7 +59,7 @@ def plot_energies(energies, t, period,basename, output_path='./', calc_growth_ra
     ax.semilogy(t/period, u_rms, label=r"$u_{rms}$")
     ax.set_ylabel(r"$< w >_{rms}$", fontsize=20)
     ax.set_xlabel(r"$t/t_{1}$", fontsize=20)
-    ax.set_ylim(1e-6,1e-2)
+    #ax.set_ylim(1e-6,1e-2)
     if calc_growth_rate:
         gamma_w, w0 = compute_growth(w_rms, t, period, growth_start, growth_stop)
         ax.semilogy(t/period, w0*np.exp(gamma_w*t), 'k-.', label='$\gamma_w/\Omega_1 = %f$' % (gamma_w*period/(2*np.pi)))
@@ -128,6 +127,6 @@ if __name__ == "__main__":
 
     files = args['<files>']
     ts = read_timeseries(files)
-    plot_energies([ts['KE'], ts['u_rms'], ts['w_rms']], ts['time'], period, basename, output_path=output_path,calc_growth_rate=True,growth_start=0.25,growth_stop=0.5)
+    plot_energies([ts['KE'], ts['u_rms'], ts['w_rms']], ts['time'], period, basename, output_path=output_path,calc_growth_rate=False,growth_start=0.25,growth_stop=0.5)
 
 
