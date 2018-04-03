@@ -168,7 +168,7 @@ solver.stop_wall_time = np.inf
 solver.stop_iteration = np.inf
 
 output_time_cadence = 0.01*period
-analysis_tasks = GSF.initialize_output(solver, data_dir, sim_dt=output_time_cadence, write_num=write)
+analysis_tasks = GSF.initialize_output(solver, data_dir, sim_dt=output_time_cadence)
 logger.info("Starting CFL")
 CFL = flow_tools.CFL(solver, initial_dt=dt, cadence=5, safety=0.3,
                      max_change=1.5, min_change=0.5)
