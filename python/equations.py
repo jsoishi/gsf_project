@@ -16,15 +16,7 @@ from dedalus import public as de
 
 class Equations():
     def __init__(self):
-        raw_id = subprocess.check_output(['hg','id','-i'])
-
-        self.hg_version = raw_id.decode().strip()
-        logger.info("equations version {}".format(self.hg_version))
-
         self.hg_diff = None
-        if self.hg_version.endswith('+'):
-            raw_diff = subprocess.check_output(['hg','diff'])
-            self.hg_diff = raw_diff.decode()
 
     def set_IVP_problem(self, *args, **kwargs):
         self._set_domain()
