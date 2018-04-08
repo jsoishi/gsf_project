@@ -21,6 +21,7 @@ Options:
     --filter=<filter>          fraction of modes to keep in ICs [default: 0.5]
     --mesh=<mesh>              processor mesh (you're in charge of making this consistent with nproc) [default: None]
 """
+import glob
 import logging
 import os
 import sys
