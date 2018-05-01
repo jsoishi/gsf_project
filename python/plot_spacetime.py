@@ -81,10 +81,10 @@ if __name__ == "__main__":
     with h5py.File(files[-1],'r') as f:
         r = f['scales']['r']['1.0'][:]
     
-    fig = plot_spacetime(ts['time']/period, r, ts['w_rms'][:,0,:])
+    fig = plot_spacetime(ts['time']/period, r, ts['w_rms'][:,:])
     outfile = output_path.joinpath('{}_w_spacetime.png'.format(basename))
     fig.savefig(str(outfile))
 
-    fig = plot_ztavg(ts['time']/period, r, ts['w_rms'][:,0,:],start=8.)
+    fig = plot_ztavg(ts['time']/period, r, ts['w_rms'][:,:],start=8.)
     outfile = output_path.joinpath('{}_w_ztavg.png'.format(basename))
     fig.savefig(str(outfile))
