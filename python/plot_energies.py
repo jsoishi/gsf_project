@@ -57,13 +57,13 @@ def plot_energies(energies, t, period,basename, output_path='./', calc_growth_ra
     ax = fig_energies.add_axes([0.1,0.1,0.8,0.8])
     ax.semilogy(t/period, w_rms, label=r"$w_{rms}$")
     ax.semilogy(t/period, u_rms, label=r"$u_{rms}$")
-    ax.set_ylabel(r"$< w >_{rms}$", fontsize=20)
+    ax.set_ylabel("rms velocities", fontsize=20)
     ax.set_xlabel(r"$t/t_{1}$", fontsize=20)
     #ax.set_ylim(1e-6,1e-2)
     if calc_growth_rate:
         gamma_w, w0 = compute_growth(w_rms, t, period, growth_start, growth_stop)
         ax.semilogy(t/period, w0*np.exp(gamma_w*t), 'k-.', label='$\gamma_w/\Omega_1 = %f$' % (gamma_w*period/(2*np.pi)))
-        ax.legend(loc='lower right').draw_frame(False)
+    ax.legend(loc='lower right').draw_frame(False)
 
     figs["energies"]=fig_energies
 
