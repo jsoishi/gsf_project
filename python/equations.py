@@ -5,10 +5,6 @@ from mpi4py import MPI
 
 from collections import OrderedDict
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 import logging
 logger = logging.getLogger(__name__.split('.')[-1])
 
@@ -280,7 +276,10 @@ class TC_equations(Equations):
         self.problem.add_equation(theta_mom)
 
     def set_mom_z(self):
-        self.problem.add_equation("r*dt(w) - nu*Lap_z + r*dz(p) = -UdotGrad_z")
+        if self.threeD:
+            self.problem.add_equation("r*r*dt(w) - nu*Lap_z + r*r*dz(p) = -UdotGrad_z")
+        else:
+            self.problem.add_equation("r*dt(w) - nu*Lap_z + r*dz(p) = -UdotGrad_z")
 
     def set_aux(self):
         self.problem.add_equation("ur - dr(u) = 0")
@@ -294,7 +293,10 @@ class TC_equations(Equations):
 
     def set_tracer(self):
         if self.tracer:
-            self.problem.add_equation("dt(c) - nu_dye*Lap_s(c, cr) = UdotGrad_s(c, cr)")
+            if self.threeD:
+                self.problem.add_equation("r*r*dt(c) - nu_dye*Lap_s(c, cr) = -UdotGrad_s(c, cr)")
+            else:
+                self.problem.add_equation("r*dt(c) - nu_dye*Lap_s(c, cr) = -UdotGrad_s(c, cr)")
 
 class GSF_boussinesq_equations(TC_equations):
     def __init__(self, *args, **kwargs):
@@ -317,7 +319,12 @@ class GSF_boussinesq_equations(TC_equations):
         self.problem.add_equation("r*r*dt(u) - nu*Lap_r + r*r*dr(p) - r*r*T = -UdotGrad_r")
 
     def set_energy(self):
-        self.problem.add_equation("r*dt(T) - r*chi*dr(Tr) - chi*Tr - r*chi*dz(dz(T))  + r*N2*u = -r*u*Tr - r*w*dz(T)")
+        if self.threeD:
+            energy = "r*r*dt(T) - chi*Lap_s(T,Tr)  + r*r*N2*u = -UdotGrad_s(T, Tr)"
+        else:
+            energy = "r*dt(T) - chi*Lap_s(T,Tr)  + r*N2*u = -UdotGrad_s(T, Tr)"
+        
+        self.problem.add_equation(energy)
     
     def set_aux(self):
         super(GSF_boussinesq_equations, self).set_aux()
