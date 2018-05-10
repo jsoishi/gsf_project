@@ -1,9 +1,11 @@
 """
 Dedalus script for 2D Taylor-Couette Flow
 
+Default parameters from Barenghi (1991, J. Comp. Phys.).
+
 
 Usage:
-    TC_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --Lz=<Lz>  --restart=<restart_file> --nz=<nz>] 
+    TC_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --Lz=<Lz>  --restart=<restart_file> --nz=<nz> --filter=<filter>] 
 
 Options:
     --Re=<Re>      Reynolds number [default: 80]
@@ -12,6 +14,7 @@ Options:
     --Lz=<Lz>      Lz  [default: 2.0074074463832545]
     --restart=<restart_file>   Restart from checkpoint
     --nz=<nz>                  vertical z (Fourier) resolution [default: 32]
+    --filter=<filter>          fraction of modes to keep in ICs [default: 0.5]
 """
 import os
 import numpy as np
@@ -35,6 +38,7 @@ except ImportError:
 
 
 from equations import TC_equations
+from filter_field import filter_field
 
 
 from docopt import docopt
@@ -46,15 +50,17 @@ mu = float(args['--mu'])
 Re = float(args['--Re'])
 eta = float(args['--eta'])
 Lz = float(args['--Lz'])
+filter_frac = float(args['--filter'])
 
 nz = int(args['--nz'])
+ntheta = 0
 nr = nz
 
 restart = args['--restart']
 
 # save data in directory named after script
-data_dir = sys.argv[0].split('.py')[0]
-data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}/".format(Re, mu, eta)
+data_dir = "scratch/" + sys.argv[0].split('.py')[0]
+data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_filter{3:5.02e}_nr{4:d}_ntheta{5:d}_nz{6:d}/".format(Re, mu, eta, filter_frac, nr, ntheta, nz)
 logger.info("saving run in: {}".format(data_dir))
 
 TC = TC_equations(nr=nr, nz=nz)
@@ -104,6 +110,14 @@ if restart is None:
     phi.set_scales(TC.domain.dealias, keep_data=False)
 
     phi['g'] = A0 * noise
+    phi['g'] = noise
+    if filter_frac != 1.: 
+        logger.info("Beginning filter")
+        filter_field(phi,frac=filter_frac)
+        logger.info("Finished filter")
+    else:
+        logger.warn("No filtering applied to ICs! This is probably bad!")
+
     phi.differentiate('r',out=u)
     u['g'] *= -1*np.sin(np.pi*(r - r_in))
     phi.differentiate('z',out=w)
