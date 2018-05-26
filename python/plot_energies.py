@@ -2,11 +2,14 @@
 Plot energies from joint analysis files.
 
 Usage:
-    plot_energies.py <files>... [--output=<dir> --omega1=<omega1>]
+    plot_energies.py <files>... [--output=<dir> --eta=<eta> --calc-growth --growth-start=<start> --growth-stop=<stop>]
 
 Options:
-    --output=<dir>    Output directory
-    --omega1=<omega1> inner rotation freqency   [default: 0.010101010101010102]
+    --output=<dir>              Output directory
+    --eta=<eta>                 eta = R1/R2  [default: 0.99]
+    --calc-growth               calculate growth rate
+    --growth-start=<start>      start time for growth rate calculation in units of inner cylinder period [default: 0.25]
+    --growth-stop=<stop>        stop time for growth rate calculation in units of inner cylinder period [default: 0.5]
 """
 import numpy as np
 import h5py
@@ -47,7 +50,7 @@ def read_timeseries(files, verbose=False):
 
     return ts
 
-def plot_energies(energies, t, period,basename, output_path='./', calc_growth_rate=False, growth_start=1, growth_stop=2):
+def plot_energies(energies, t, period, basename, output_path='./', calc_growth_rate=False, growth_start=1, growth_stop=2):
     [KE, u_rms, w_rms] = energies
 
     figs = {}
@@ -59,7 +62,7 @@ def plot_energies(energies, t, period,basename, output_path='./', calc_growth_ra
     ax.semilogy(t/period, u_rms, label=r"$u_{rms}$")
     ax.set_ylabel("rms velocities", fontsize=20)
     ax.set_xlabel(r"$t/t_{1}$", fontsize=20)
-    #ax.set_ylim(1e-6,1e-2)
+
     if calc_growth_rate:
         gamma_w, w0 = compute_growth(w_rms, t, period, growth_start, growth_stop)
         ax.semilogy(t/period, w0*np.exp(gamma_w*t), 'k-.', label='$\gamma_w/\Omega_1 = %f$' % (gamma_w*period/(2*np.pi)))
@@ -106,6 +109,11 @@ if __name__ == "__main__":
 
     args = docopt(__doc__)
 
+    eta = float(args['--eta'])
+    growth_start = float(args['--growth-start'])
+    growth_stop = float(args['--growth-stop'])
+    calc_growth = args['--calc-growth']
+    
     p = pathlib.Path(args['<files>'][0])
     basename = p.parts[-3]
     print(basename)
@@ -122,11 +130,12 @@ if __name__ == "__main__":
                 output_path.mkdir()
     print(output_path)
 
-    omega1 = float(args['--omega1'])
-    period = 2*np.pi/omega1
 
+    omega1 = 1/eta - 1.
+    period = 2*np.pi/omega1
+    print("omega1 = {}".format(omega1))
     files = args['<files>']
     ts = read_timeseries(files)
-    plot_energies([ts['KE'], ts['u_rms'], ts['w_rms']], ts['time'], period, basename, output_path=output_path,calc_growth_rate=False,growth_start=0.25,growth_stop=0.5)
+    plot_energies([ts['KE'], ts['u_rms'], ts['w_rms']], ts['time'], period, basename, output_path=output_path,calc_growth_rate=calc_growth,growth_start=growth_start,growth_stop=growth_stop)
 
 
