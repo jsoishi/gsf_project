@@ -29,14 +29,6 @@ logger = logging.getLogger(__name__)
 # for h in root.handlers:
 #     h.setLevel("DEBUG")
 
-try:
-    from dedalus.extras.checkpointing import Checkpoint
-    do_checkpointing=True
-except ImportError:
-    logger.warn("No Checkpointing module. Setting checkpointing to false.")
-    do_checkpointing=False
-
-
 from equations import TC_equations
 from filter_field import filter_field
 
@@ -78,10 +70,6 @@ solver= problem.build_solver(ts)
 
 for k,v in problem.parameters.items():
     logger.info("paramter {}: {}".format(k,v))
-
-if do_checkpointing:
-    checkpoint = Checkpoint(data_dir)
-    checkpoint.set_checkpoint(solver, wall_dt=1800)
 
 if restart is None:
      # Random perturbations, need to initialize globally
@@ -126,7 +114,7 @@ if restart is None:
     w.differentiate('r',out=wr)
 else:
     logger.info("restarting from {}".format(restart))
-    checkpoint.restart(restart, solver)
+    solver.load_state(restart, -1)
 
 
 omega1 = problem.parameters['v_l']/r_in
