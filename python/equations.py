@@ -50,6 +50,9 @@ class Equations():
         analysis_slice.add_task("u", name="u")
         analysis_slice.add_task("v", name="v")
         analysis_slice.add_task("w", name="w")
+        analysis_slice.add_task("u", name="uc", layout="c")
+        analysis_slice.add_task("v", name="vc", layout="c")
+        analysis_slice.add_task("w", name="wc", layout="c")
         if 'T' in self.variables:
             analysis_slice.add_task("T", name="T")
         self.analysis_tasks.append(analysis_slice)
@@ -57,6 +60,7 @@ class Equations():
         analysis_profile = solver.evaluator.add_file_handler(data_dir+"profiles", max_writes=20, parallel=False, **kwargs)
         analysis_profile.add_task("plane_avg(KE)", name="KE")
 
+        analysis_profile.add_task("plane_avg(v_tot)", name="v_tot")
         analysis_profile.add_task("plane_avg(u_rms)", name="u_rms")
         analysis_profile.add_task("plane_avg(v_rms)", name="v_rms")
         analysis_profile.add_task("plane_avg(w_rms)", name="w_rms")
@@ -67,14 +71,17 @@ class Equations():
         self.analysis_tasks.append(analysis_profile)
 
         analysis_scalar = solver.evaluator.add_file_handler(data_dir+"scalar", max_writes=20, parallel=False, **kwargs)
-        analysis_scalar.add_task("vol_avg(KE)", name="KE")
+        analysis_scalar.add_task("integ(r*KE)", name="KE")
         #analysis_scalar.add_task("vol_avg(PE)", name="PE")
         #analysis_scalar.add_task("vol_avg(KE + PE)", name="TE")
         analysis_scalar.add_task("vol_avg(u_rms)", name="u_rms")
         analysis_scalar.add_task("vol_avg(v_rms)", name="v_rms")
         analysis_scalar.add_task("vol_avg(w_rms)", name="w_rms")
         analysis_scalar.add_task("vol_avg(Re_rms)", name="Re_rms")
-        #analysis_scalar.add_task("vol_avg(enstrophy)", name="enstrophy")
+        # analysis_scalar.add_task("probe(u)", name="u_probe")
+        # analysis_scalar.add_task("probe(v)", name="v_probe")
+        # analysis_scalar.add_task("probe(w)", name="w_probe")
+        analysis_scalar.add_task("integ(r*enstrophy)", name="enstrophy")
 
         self.analysis_tasks.append(analysis_scalar)
 
@@ -94,8 +101,8 @@ class Equations():
         else:
             self.problem.add_bc("right(p) = 0", condition="nz == 0")
 
-        self.problem.add_bc("left(v) = v_l")
-        self.problem.add_bc("right(v) = v_r")
+        self.problem.add_bc("left(v) = 0")
+        self.problem.add_bc("right(v) = 0")
 
         self.problem.add_bc("left(w) = 0")
         self.problem.add_bc("right(w) = 0")
@@ -116,27 +123,36 @@ class Equations():
         Lap_z --> z component of vector laplacian
 
         """
-        self.problem.substitutions['vel_sum_sq'] = 'u**2 + v**2 + w**2'
+        self.problem.substitutions['A'] = '(1/eta - 1.)*(mu-eta**2)/(1-eta**2)'
+        self.problem.substitutions['B'] = 'eta*(1-mu)/((1-eta)*(1-eta**2))'
+
+        self.problem.substitutions['v0'] = 'A*r + B/r'
+        self.problem.substitutions['dv0dr'] = 'A - B/(r*r)'
+
+        self.problem.substitutions['v_tot'] = 'v0 + v'
+        self.problem.substitutions['vel_sum_sq'] = 'u**2 + v_tot**2 + w**2'
 
         # NB: this problem assumes delta = R2 - R1 = 1 
-        self.problem.substitutions['plane_avg(A)'] = 'integ(A, "z")/Lz'
+        self.problem.substitutions['plane_avg(A)'] = 'integ(r*A, "z")/Lz'
         if self.threeD:
-            self.problem.substitutions['vol_avg(A)']   = 'integ(A)/(pi*(R2**2 - R1**2)*Lz)'
+            self.problem.substitutions['vol_avg(A)']   = 'integ(r*A)/(pi*(R2**2 - R1**2)*Lz)'
+            self.problem.substitutions['probe(A)'] = 'interp(A,r={}, theta={}, z={})'.format(self.R1 + 0.5, 0., self.Lz/2.)
         else:
-            self.problem.substitutions['vol_avg(A)']   = 'integ(A)/Lz'
-        self.problem.substitutions['KE'] = 'vel_sum_sq/2'
+            self.problem.substitutions['vol_avg(A)']   = 'integ(r*A)/Lz'
+        self.problem.substitutions['KE'] = '0.5*vel_sum_sq'
         self.problem.substitutions['u_rms'] = 'sqrt(u*u)'
         self.problem.substitutions['v_rms'] = 'sqrt(v*v)'
         self.problem.substitutions['w_rms'] = 'sqrt(w*w)'
         self.problem.substitutions['Re_rms'] = 'sqrt(vel_sum_sq)*Lz/nu'
         self.problem.substitutions['epicyclic_freq_sq']  = 'dr(r*r*v*v)/(r*r*r)'
-        # if self.threeD:
-        #     self.problem.substitutions['enstrophy'] = '(dy(w) - v_z)**2 + (u_z- dx(w) )**2 + (dx(v) - dy(u))**2'
-        # else:
-        #     self.problem.substitutions['enstrophy'] = '(u_z - dx(w))**2'
-
-        
         if self.threeD:
+            self.problem.substitutions['enstrophy'] = '0.5*((dtheta(w)/r - dz(v_tot))**2 + (dz(u) - wr )**2 + (vr + dv0dr + v_tot/r - dtheta(u))**2)'
+        else:
+            self.problem.substitutions['enstrophy'] = '0.5*(dz(v_tot)**2 + (dz(u) - wr)**2 + (vr + dv0dr + v_tot/r)**2)'
+
+        if self.threeD:
+            # not pre-multiplied...don't use this in an equation!
+            self.problem.substitutions['DivU'] = "ur + u/r + dtheta(v)/r + dz(w)"
             # assume pre-multiplication by r*r
             self.problem.substitutions['Lap_s(f, f_r)'] = "r*r*dr(f_r) + r*f_r + dtheta(dtheta(f)) + r*r*dz(dz(f))"
             self.problem.substitutions['Lap_r'] = "Lap_s(u, ur) - u - 2*dtheta(v)"
@@ -144,9 +160,10 @@ class Equations():
             self.problem.substitutions['Lap_z'] = "Lap_s(w, wr)"
             self.problem.substitutions['UdotGrad_s(f, f_r)'] = "r*r*u*f_r + r*v*dtheta(f) + r*r*w*dz(f)"
             self.problem.substitutions['UdotGrad_r'] = "UdotGrad_s(u, ur) - r*v*v"
-            self.problem.substitutions['UdotGrad_t'] = "UdotGrad_s(v, vr) - r*u*v"
+            self.problem.substitutions['UdotGrad_t'] = "UdotGrad_s(v, vr) + r*u*v"
             self.problem.substitutions['UdotGrad_z'] = "UdotGrad_s(w, wr)"
         else:
+            self.problem.substitutions['DivU'] = "ur + u/r + dz(w)"
             # assume pre-multiplication by r for scalars and w, r*r for r, theta vector components
             self.problem.substitutions['Lap_s(f, f_r)'] = "r*dr(f_r) + f_r + r*dz(dz(f))"
             self.problem.substitutions['Lap_r'] = "r*Lap_s(u, ur) - u"
@@ -239,14 +256,17 @@ class TC_equations(Equations):
         self._eqn_params = {}
         self._eqn_params['nu'] = self.nu
         self._eqn_params['nu_dye'] = self.nu_dye
-        self._eqn_params['v_l'] = self.R1*self.Omega1
-        self._eqn_params['v_r'] = self.R2*self.Omega2
+        self._eqn_params['eta'] = self.eta 
+        self._eqn_params['mu'] = self.mu
         self._eqn_params['Lz'] = self.Lz
         self._eqn_params['R1'] = self.R1
         self._eqn_params['R2'] = self.R2
         self._eqn_params['pi'] = np.pi
 
     def calc_v0(self):
+        """Calculate the couette flow velocity on the grid.
+
+        """
         r = self.domain.grid(-1)
         A = -self.Omega1 * self.eta**2 * (1-self.mu/self.eta**2)/(1-self.eta**2)
         B = self.Omega1 * self.R1**2 * (1 - self.mu)/((1-self.eta**2))
@@ -265,21 +285,26 @@ class TC_equations(Equations):
         self.set_mom_z()
 
     def set_mom_r(self):
-        self.problem.add_equation("r*r*dt(u) - nu*Lap_r + r*r*dr(p) = -UdotGrad_r")
+        r_mom = "r*r*dt(u) - nu*Lap_r - 2*r*v0*v"
+        if self.threeD:
+            r_mom += "+ r*v0*dtheta(u)"
+        r_mom += "+ r*r*dr(p) = r*v0*v0 - UdotGrad_r"
+
+        self.problem.add_equation(r_mom)
 
     def set_mom_t(self):
-        theta_mom = "r*r*dt(v) - nu*Lap_t"
+        theta_mom = "r*r*dt(v) - nu*Lap_t + r*r*dv0dr*u + r*v0*u"
         if self.threeD:
-            theta_mom += " + r*r*dtheta(p)"
+            theta_mom += "+ r*v0*dtheta(v) + r*r*dtheta(p)"
         theta_mom += " = -UdotGrad_t"
 
         self.problem.add_equation(theta_mom)
 
     def set_mom_z(self):
         if self.threeD:
-            self.problem.add_equation("r*r*dt(w) - nu*Lap_z + r*r*dz(p) = -UdotGrad_z")
+            self.problem.add_equation("r*r*dt(w) - nu*Lap_z + r*r*dz(p) + r*v0*dtheta(w) = -UdotGrad_z")
         else:
-            self.problem.add_equation("r*dt(w) - nu*Lap_z + r*dz(p) = -UdotGrad_z")
+            self.problem.add_equation("  r*dt(w) - nu*Lap_z +   r*dz(p)                  = -UdotGrad_z")
 
     def set_aux(self):
         self.problem.add_equation("ur - dr(u) = 0")
@@ -316,13 +341,16 @@ class GSF_boussinesq_equations(TC_equations):
         self._eqn_params['N2'] = self.N2
 
     def set_mom_r(self):
-        self.problem.add_equation("r*r*dt(u) - nu*Lap_r + r*r*dr(p) - r*r*T = -UdotGrad_r")
+        r_mom = "r*r*dt(u) - nu*Lap_r - r*r*T - 2*r*v0*v"
+        if self.threeD:
+            r_mom += "+ r*v0*dtheta(u)"
+        r_mom += "+ r*r*dr(p) = r*v0*v0 - UdotGrad_r"
 
     def set_energy(self):
         if self.threeD:
-            energy = "r*r*dt(T) - chi*Lap_s(T,Tr)  + r*r*N2*u = -UdotGrad_s(T, Tr)"
+            energy = "r*r*dt(T) - chi*Lap_s(T,Tr)  + r*r*N2*u + v0*dtheta(T) = -UdotGrad_s(T, Tr)"
         else:
-            energy = "r*dt(T) - chi*Lap_s(T,Tr)  + r*N2*u = -UdotGrad_s(T, Tr)"
+            energy = "  r*dt(T) - chi*Lap_s(T,Tr)  +   r*N2*u                = -UdotGrad_s(T, Tr)"
         
         self.problem.add_equation(energy)
     
