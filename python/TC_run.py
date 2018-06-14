@@ -195,20 +195,25 @@ dt = CFL.compute_dt()
 # Main loop
 start_time = time.time()
 
+if TC.threeD:
+    geo_factor = 1
+else:
+    geo_factor = 2*np.pi
+
 while solver.ok:
     solver.step(dt)
     if (solver.iteration-1) % 10 == 0:
         logger.info('Iteration: %i, Time: %e, Inner rotation periods: %e, dt: %e' %(solver.iteration, solver.sim_time, solver.sim_time/period, dt))
         logger.info('Max |divu| = {}'.format(flow.max('divu')))
-        logger.info('Total KE per Lz = {}'.format(flow.max('KE')/Lz))
-        logger.info('Total enstrophy per Lz = {}'.format(flow.max('enstrophy')/Lz))
+        logger.info('Total KE per Lz = {}'.format(geo_factor*flow.max('KE')/Lz))
+        logger.info('Total enstrophy per Lz = {}'.format(geo_factor*flow.max('enstrophy')/Lz))
     dt = CFL.compute_dt()
 
 
 end_time = time.time()
 
 # Print statistics
-logger.info('Total time: %f' %(end_time-start_time))
+logger.info('Total wall time: %f' %(end_time-start_time))
 logger.info('Iterations: %i' %solver.iteration)
 logger.info('Average timestep: %f' %(solver.sim_time/solver.iteration))
 
