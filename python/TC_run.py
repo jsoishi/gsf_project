@@ -66,7 +66,7 @@ restart = args['--restart']
 
 # save data in directory named after script
 data_dir = "scratch/" + sys.argv[0].split('.py')[0]
-data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_filter{3:5.02e}_nr{4:d}_ntheta{5:d}_nz{6:d}/".format(Re, mu, eta, filter_frac, nr, ntheta, nz)
+data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Lz{3:5.02e}_filter{4:5.02e}_nr{5:d}_ntheta{6:d}_nz{7:d}/".format(Re, mu, eta, Lz, filter_frac, nr, ntheta, nz)
 logger.info("saving run in: {}".format(data_dir))
 
 TC = TC_equations(nr=nr, ntheta=ntheta, nz=nz, mesh=mesh)
