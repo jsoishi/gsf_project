@@ -156,13 +156,14 @@ class Equations():
             # assume pre-multiplication by r*r
             self.problem.substitutions['Lap_s(f, f_r)'] = "r*r*dr(f_r) + r*f_r + dtheta(dtheta(f)) + r*r*dz(dz(f))"
             self.problem.substitutions['Lap_r'] = "Lap_s(u, ur) - u - 2*dtheta(v)"
-            self.problem.substitutions['Lap_t'] = "Lap_s(v, vr) + 2*dtheta(u) - v"
+            self.problem.substitutions['Lap_t'] = "Lap_s(v, vr) - v + 2*dtheta(u)"
             self.problem.substitutions['Lap_z'] = "Lap_s(w, wr)"
             self.problem.substitutions['UdotGrad_s(f, f_r)'] = "r*r*u*f_r + r*v*dtheta(f) + r*r*w*dz(f)"
             self.problem.substitutions['UdotGrad_r'] = "UdotGrad_s(u, ur) - r*v*v"
             self.problem.substitutions['UdotGrad_t'] = "UdotGrad_s(v, vr) + r*u*v"
             self.problem.substitutions['UdotGrad_z'] = "UdotGrad_s(w, wr)"
         else:
+            # not pre-multiplied...don't use this in an equation!
             self.problem.substitutions['DivU'] = "ur + u/r + dz(w)"
             # assume pre-multiplication by r for scalars and w, r*r for r, theta vector components
             self.problem.substitutions['Lap_s(f, f_r)'] = "r*dr(f_r) + f_r + r*dz(dz(f))"
