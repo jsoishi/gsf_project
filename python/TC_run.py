@@ -200,6 +200,7 @@ if TC.threeD:
 else:
     geo_factor = 2*np.pi
 
+logger.info("Starting main loop...")
 while solver.ok:
     solver.step(dt)
     if (solver.iteration-1) % 10 == 0:
