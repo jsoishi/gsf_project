@@ -295,7 +295,7 @@ class TC_equations(Equations):
     def set_mom_t(self):
         theta_mom = "r*r*dt(v) - nu*Lap_t + r*r*dv0dr*u + r*v0*u"
         if self.threeD:
-            theta_mom += "+ r*v0*dtheta(v) + r*r*dtheta(p)"
+            theta_mom += "+ r*v0*dtheta(v) + r*dtheta(p)"
         theta_mom += " = -UdotGrad_t"
 
         self.problem.add_equation(theta_mom)
