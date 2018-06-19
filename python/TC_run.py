@@ -18,7 +18,7 @@ Options:
     --nz=<nz>                  vertical z (Fourier) resolution [default: 32]
     --filter=<filter>          fraction of modes to keep in ICs [default: 0.5]
     --mesh=<mesh>              processor mesh (you're in charge of making this consistent with nproc) [default: None]
-    --m1=<m1>                  initial m perturbation. If this is non-zero, make axisymmetric noise with a single sin(m*theta) perturbation [default: 0]
+    --m1=<m1>                  initial m perturbation. If this is non-zero, use Willis ICs with a single sin(m*theta) perturbation [default: 0]
 """
 import os
 import numpy as np
@@ -53,7 +53,7 @@ ntheta = int(args['--ntheta'])
 nz = int(args['--nz'])
 
 m1 = int(args['--m1'])
-ic_axisymmetric = (m1 > 0)
+ic_willis = (m1 > 0)
 
 mesh = args['--mesh']
 if mesh == 'None':
@@ -94,79 +94,41 @@ if restart is None:
     w = solver.state['w']
     wr = solver.state['wr']
     r = TC.domain.grid(-1,scales=TC.domain.dealias)
+    z = TC.domain.grid(0,scales=TC.domain.dealias)
     if TC.threeD:
         theta = TC.domain.grid(1,scales=TC.domain.dealias)
     r_in = TC.R1
 
-    # Random perturbations, need to initialize globally
-    gshape = TC.domain.dist.grid_layout.global_shape(scales=TC.domain.dealias)
-    slices = TC.domain.dist.grid_layout.slices(scales=TC.domain.dealias)
-    rand = np.random.RandomState(seed=42)
-    noise = rand.standard_normal(gshape)
-
-    if TC.threeD:
-        noise_r = rand.standard_normal(gshape)
-        noise_z = rand.standard_normal(gshape)
-
-    if ic_axisymmetric:
-        logger.info("Making perturbations with only m1 = {}...".format(m1))
-        slices_axi = [slices[0], 0, slices[-1]]
-        noise = noise[slices_axi][:,None,:] * np.ones_like(noise[slices]) * np.sin(m1*theta)
-        if TC.threeD:
-            noise_r = noise_r[slices_axi][:,None,:] * np.ones_like(noise_r[slices]) * np.sin(m1*theta)
-            noise_z = noise_z[slices_axi][:,None,:] * np.ones_like(noise_z[slices]) * np.sin(m1*theta)
-    else:
-        noise = noise[slices]
-        if TC.threeD:
-            noise_r = noise_r[slices]
-            noise_z = noise_z[slices]
-    A0 = 1e-3
-
     ## add perturbations
-    ## g is the vector potential
 
-    g_theta = TC.domain.new_field(name='g_theta')
-    g_theta.set_scales(TC.domain.dealias, keep_data=False)
-    if TC.threeD:
-        g_r = TC.domain.new_field(name='g_r')
-        g_z = TC.domain.new_field(name='g_z')
-
-        g_r.set_scales(TC.domain.dealias, keep_data=False) 
-        g_z.set_scales(TC.domain.dealias, keep_data=False) 
-
-    g_theta['g'] = A0 * noise * np.sin(np.pi*(r - r_in))
-    if TC.threeD:
-        g_r['g'] = A0 * noise_r * np.sin(np.pi*(r - r_in))
-        g_z['g'] = A0 * noise_z * np.sin(np.pi*(r - r_in))
-
-    if filter_frac != 1.: 
-        logger.info("Beginning filter")
-        filter_field(g_theta,frac=filter_frac)
-        if TC.threeD:
-            filter_field(g_r, frac=filter_frac)
-            filter_field(g_z, frac=filter_frac)
-        logger.info("Finished filter")
+    if ic_willis:
+        ## Willis & Bahrenghi ICs
+        logger.info("Using initial conditions from Willis's PhD thesis")
+        u.set_scales(TC.domain.dealias, keep_data=False)
+        w.set_scales(TC.domain.dealias, keep_data=False)
+        x = r - r_in
+        kz = 2*np.pi/Lz
+        u['g'] = kz**2 * x**2 * (1-x)**2 * np.sin(kz*z)
+        w['g'] = kz * x**2 * (1-x)**2 * np.cos(kz*z)/r + 2*kz*np.cos(kz*z) * ((1-x)**2 * x - x**2 * (1 - x)) - (x**2 * (1 - x)**2)/r * m1 * np.cos(m1*theta)
+        u.differentiate('r',out=ur)
+        w.differentiate('r',out=wr)
     else:
-        logger.warn("No filtering applied to ICs! This is probably bad!")
-
-    g_theta.differentiate('z',out=u)
-    u['g'] *= -1
-    g_theta.differentiate('r',out=w)
-    w['g'] += g_theta['g']/r
-    if TC.threeD:
-        u['g'] += g_z.differentiate('theta')['g']/r
-        g_r.differentiate('z',out=v)
-        v['g'] -= g_z.differentiate('r')['g']
-        w['g'] -= g_r.differentiate('theta')['g']/r
-
-    u.differentiate('r',out=ur)
-    w.differentiate('r',out=wr)
-    if TC.threeD:
+        # Random perturbations to v in (r, z)
+        A0 = 1e-3
+        logger.info("Using axisymmetric noise initial conditions in v with amplitude A0 = {}.".format(A0))
+        v.set_scales(TC.domain.dealias, keep_data=False)
+        gshape = TC.domain.dist.grid_layout.global_shape(scales=TC.domain.dealias)
+        slices = TC.domain.dist.grid_layout.slices(scales=TC.domain.dealias)
+        rand = np.random.RandomState(seed=42)
+        noise = rand.standard_normal(gshape)
+        if TC.threeD:
+            slices_axi = [slices[0], 0, slices[-1]]
+            noise = noise[slices_axi][:, None, :] * np.ones(noise[slices])
+        v['g'] = A0 * noise[slices] * np.sin(np.pi * (r - r_in))
         v.differentiate('r', out=vr)
 else:
     logger.info("restarting from {}".format(restart))
     solver.load_state(restart, -1)
-
 
 omega1 = 1/TC.eta - 1.
 period = 2*np.pi/omega1
