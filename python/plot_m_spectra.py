@@ -76,7 +76,7 @@ if __name__ == "__main__":
         output_path = pathlib.Path(output_path)
     else:
         output_path = pathlib.Path(args['--output']).absolute()
-
+    output_path = output_path / 'spectra'
     # Create output directory if needed
     with Sync() as sync:
         if sync.comm.rank == 0:
