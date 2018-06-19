@@ -5,6 +5,7 @@ scratch/
 __pycache__/
 *.py[cod]
 *$py.class
+.ipynb_checkpoints/
 
 ## Latex Stuff
 ## Core latex/pdflatex auxiliary files:
