@@ -66,21 +66,17 @@ class Equations():
         analysis_profile.add_task("plane_avg(w_rms)", name="w_rms")
         analysis_profile.add_task("plane_avg(Re_rms)", name="Re_rms")
         analysis_profile.add_task("plane_avg(epicyclic_freq_sq)", name="epicyclic_freq_sq")
-        #analysis_profile.add_task("plane_avg(enstrophy)", name="enstrophy")
         
         self.analysis_tasks.append(analysis_profile)
 
         analysis_scalar = solver.evaluator.add_file_handler(data_dir+"scalar", max_writes=20, parallel=False, **kwargs)
         analysis_scalar.add_task("integ(r*KE)", name="KE")
-        #analysis_scalar.add_task("vol_avg(PE)", name="PE")
-        #analysis_scalar.add_task("vol_avg(KE + PE)", name="TE")
         analysis_scalar.add_task("vol_avg(u_rms)", name="u_rms")
         analysis_scalar.add_task("vol_avg(v_rms)", name="v_rms")
         analysis_scalar.add_task("vol_avg(w_rms)", name="w_rms")
         analysis_scalar.add_task("vol_avg(Re_rms)", name="Re_rms")
-        # analysis_scalar.add_task("probe(u)", name="u_probe")
-        # analysis_scalar.add_task("probe(v)", name="v_probe")
-        # analysis_scalar.add_task("probe(w)", name="w_probe")
+        if self.threeD:
+            analysis_scalar.add_task("probe(w)", name="w_probe")
         analysis_scalar.add_task("integ(r*enstrophy)", name="enstrophy")
 
         self.analysis_tasks.append(analysis_scalar)
