@@ -84,6 +84,9 @@ import dedalus.public as de
 from dedalus.extras import flow_tools
 from dedalus.tools  import post
 logger = logging.getLogger(__name__)
+# root = logging.root
+# for h in root.handlers:
+#     h.setLevel("DEBUG")
 
 from equations import GSF_boussinesq_equations
 from filter_field import filter_field
@@ -134,9 +137,6 @@ if restart is None:
     r = GSF.domain.grid(-1,scales=GSF.domain.dealias)
     r_in = GSF.R1
 
-    v['g'] = GSF.calc_v0()
-    v.differentiate('r',out=vr)
-
     ## add perturbations to temperature
     T.set_scales(GSF.domain.dealias, keep_data=False)
     T['g'] = noise 
@@ -158,7 +158,7 @@ else:
     write, dt = solver.load_state(restart, -1)
     logger.info("starting from write {0:} with dt={1:10.5e}".format(write,dt))
 
-omega1 = problem.parameters['v_l']/r_in
+omega1 = 1/GSF.eta - 1.
 period = 2*np.pi/omega1
 
 solver.stop_sim_time = 12.5*period
@@ -168,8 +168,9 @@ if nochi:
 solver.stop_wall_time = np.inf
 solver.stop_iteration = np.inf
 
-output_time_cadence = 0.01*period
-analysis_tasks = GSF.initialize_output(solver, data_dir, sim_dt=output_time_cadence)
+output_time_cadence = 0.1*period
+scalar_output_time_cadence = 0.1*output_time_cadence
+analysis_tasks = GSF.initialize_output(solver, data_dir, sim_dt_profile=output_time_cadence, sim_dt_slice=output_time_cadence, sim_dt_scalar=scalar_output_time_cadence)
 logger.info("Starting CFL")
 CFL = flow_tools.CFL(solver, initial_dt=dt, cadence=5, safety=0.3,
                      max_change=1.5, min_change=0.5)
@@ -178,6 +179,16 @@ if GSF.threeD:
 else:
     CFL.add_velocities(('u', 'w'))
 
+# Flow properties
+flow = flow_tools.GlobalFlowProperty(solver, cadence=10)
+flow.add_property("abs(DivU)", name='divu')
+flow.add_property("integ(r*KE)", name='KE')
+flow.add_property("integ(r*enstrophy)", name='enstrophy')
+
+if GSF.threeD:
+    geo_factor = 1
+else:
+    geo_factor = 2*np.pi
 
 dt = CFL.compute_dt()
 logger.info("done CFL")
@@ -186,14 +197,18 @@ start_time = time.time()
 
 while solver.ok:
     solver.step(dt)
-    logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
+    if (solver.iteration-1) % 10 == 0:
+        logger.info('Iteration: %i, Time: %e, Inner rotation periods: %e, dt: %e' %(solver.iteration, solver.sim_time, solver.sim_time/period, dt))
+        logger.info('Max |divu| = {}'.format(flow.max('divu')))
+        logger.info('Total KE per Lz = {}'.format(geo_factor*flow.max('KE')/Lz))
+        logger.info('Total enstrophy per Lz = {}'.format(geo_factor*flow.max('enstrophy')/Lz))
     dt = CFL.compute_dt()
 
 
 end_time = time.time()
 
 # Print statistics
-logger.info('Total time: %f' %(end_time-start_time))
+logger.info('Total wall time: %f' %(end_time-start_time))
 logger.info('Iterations: %i' %solver.iteration)
 logger.info('Average timestep: %f' %(solver.sim_time/solver.iteration))
 
