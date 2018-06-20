@@ -96,6 +96,7 @@ def plot_velocities(velocities, t, period, basename, output_path='./', calc_grow
     if calc_growth_rate:
         gamma_w, w0 = compute_growth(w_rms, t, period, growth_start, growth_stop)
         ax.semilogy(t/period, w0*np.exp(gamma_w*t), 'k-.', label='$\gamma_w/\Omega_1 = %f$' % (gamma_w*period/(2*np.pi)))
+        print("Growth rate gamma_w = {:18.12e} in raw units".format(gamma_w))
     ax.legend(loc='lower right').draw_frame(False)
 
     outfile = str(output_path.joinpath('{}_rms_vel.png'.format(basename)))
