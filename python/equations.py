@@ -39,14 +39,17 @@ class Equations():
         self.set_energy()
         self.set_tracer()
 
-    def initialize_output(self, solver ,data_dir, **kwargs):
+    def initialize_output(self, solver, data_dir, sim_dt_slice=None, sim_dt_profile=None, sim_dt_scalar=None, **kwargs):
         self.analysis_tasks = []
         wall_dt_checkpoints = 3540. # 59 minutes
         checkpoints = solver.evaluator.add_file_handler(os.path.join(data_dir,'checkpoints'), max_writes=50, wall_dt=wall_dt_checkpoints)
         checkpoints.add_system(solver.state)
         self.analysis_tasks.append(checkpoints)
 
-        analysis_slice = solver.evaluator.add_file_handler(data_dir+"slices", max_writes=20, parallel=False, **kwargs)
+        if sim_dt_slice:
+            analysis_slice = solver.evaluator.add_file_handler(data_dir+"slices", max_writes=20, parallel=False, sim_dt=sim_dt_slice, **kwargs)
+        else:
+            analysis_slice = solver.evaluator.add_file_handler(data_dir+"slices", max_writes=20, parallel=False, **kwargs)
         analysis_slice.add_task("u", name="u")
         analysis_slice.add_task("v", name="v")
         analysis_slice.add_task("w", name="w")
@@ -56,8 +59,11 @@ class Equations():
         if 'T' in self.variables:
             analysis_slice.add_task("T", name="T")
         self.analysis_tasks.append(analysis_slice)
-        
-        analysis_profile = solver.evaluator.add_file_handler(data_dir+"profiles", max_writes=20, parallel=False, **kwargs)
+
+        if sim_dt_profile:
+            analysis_profile = solver.evaluator.add_file_handler(data_dir+"profiles", max_writes=20, parallel=False, sim_dt=sim_dt_profile, **kwargs)
+        else:
+            analysis_profile = solver.evaluator.add_file_handler(data_dir+"profiles", max_writes=20, parallel=False, **kwargs)
         analysis_profile.add_task("plane_avg(KE)", name="KE")
 
         analysis_profile.add_task("plane_avg(v_tot)", name="v_tot")
@@ -69,7 +75,10 @@ class Equations():
         
         self.analysis_tasks.append(analysis_profile)
 
-        analysis_scalar = solver.evaluator.add_file_handler(data_dir+"scalar", max_writes=20, parallel=False, **kwargs)
+        if sim_dt_scalar:
+            analysis_scalar = solver.evaluator.add_file_handler(data_dir+"scalar", parallel=False, sim_dt=sim_dt_scalar, **kwargs)
+        else:
+            analysis_scalar = solver.evaluator.add_file_handler(data_dir+"scalar", parallel=False, **kwargs)
         analysis_scalar.add_task("integ(r*KE)", name="KE")
         analysis_scalar.add_task("vol_avg(u_rms)", name="u_rms")
         analysis_scalar.add_task("vol_avg(v_rms)", name="v_rms")

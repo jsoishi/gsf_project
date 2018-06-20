@@ -137,7 +137,8 @@ solver.stop_wall_time = 24*3600.#np.inf
 solver.stop_iteration = np.inf
 
 output_time_cadence = 0.1*period
-analysis_tasks = TC.initialize_output(solver, data_dir, sim_dt=output_time_cadence)
+scalar_output_time_cadence = output_time_cadence/100.
+analysis_tasks = TC.initialize_output(solver, data_dir, sim_dt_profile=output_time_cadence, sim_dt_slice=output_time_cadence, sim_dt_scalar=scalar_output_time_cadence)
 
 CFL = flow_tools.CFL(solver, initial_dt=1e-3, cadence=5, safety=0.3,
                      max_change=1.5, min_change=0.5)
