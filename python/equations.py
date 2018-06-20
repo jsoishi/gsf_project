@@ -343,6 +343,8 @@ class GSF_boussinesq_equations(TC_equations):
             r_mom += "+ r*v0*dtheta(u)"
         r_mom += "+ r*r*dr(p) = r*v0*v0 - UdotGrad_r"
 
+        self.problem.add_equation(r_mom)
+
     def set_energy(self):
         if self.threeD:
             energy = "r*r*dt(T) - chi*Lap_s(T,Tr)  + r*r*N2*u + v0*dtheta(T) = -UdotGrad_s(T, Tr)"
