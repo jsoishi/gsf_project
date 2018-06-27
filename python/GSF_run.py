@@ -224,6 +224,10 @@ while solver.ok:
         logger.info('Total enstrophy per Lz = {}'.format(geo_factor*flow.max('enstrophy')/Lz))
     dt = CFL.compute_dt()
 
+# write last checkpoint
+end_world_time = solver.get_world_time()
+end_wall_time = end_world_time - solver.start_time
+solver.evaluator.evaluate_handlers([analysis_tasks[0],], timestep = dt, sim_time = solver.sim_time, world_time=end_world_time, wall_time=end_wall_time, iteration=solver.iteration)
 
 end_time = time.time()
 
