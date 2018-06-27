@@ -3,7 +3,7 @@ Dedalus script for 2D/3D GSF simulations
 
 
 Usage:
-    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --tracer --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nr=<nr> --ntheta=<ntheta> --nz=<nz> --filter=<filter> --mesh=<mesh>] 
+    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --tracer --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nr=<nr> --ntheta=<ntheta> --nz=<nz> --filter=<filter> --mesh=<mesh> --stop_sim_time=<stop_sim_time> --stop_wall_time=<stop_wall_time> --run_note=<run_note>] 
 
 Options:
     --Re=<Re>      Reynolds number [default: 80]
@@ -20,6 +20,9 @@ Options:
     --ntheta=<ntheta>          azimuthal theta (Fourier) resolution [default: 0]
     --filter=<filter>          fraction of modes to keep in ICs [default: 0.5]
     --mesh=<mesh>              processor mesh (you're in charge of making this consistent with nproc) [default: None]
+    --stop_sim_time=<stop_sim_time>       simulation stop time (in inner periods) [default: 15]
+    --stop_wall_time=<stop_wall_time>     wall stop time (in hours) [default: inf]
+    --run_note=<run_note>      tag to ID specific run (appended to output directory) [default: None]
 """
 import glob
 import logging
@@ -50,10 +53,22 @@ nz = int(args['--nz'])
 restart = args['--restart']
 mesh = args['--mesh']
 
+stop_sim_time = float(args['--stop_sim_time'])
+stop_wall_time = args['--stop_wall_time']
+
+if stop_wall_time == 'inf':
+    stop_wall_time = np.inf
+else:
+    stop_wall_time = float(stop_wall_time)
+
 if mesh == 'None':
     mesh = None
 else:
     mesh = [int(i) for i in mesh.split(',')]
+
+run_note = args['--run_note']
+if run_note == 'None':
+    run_note = None
 
 # save data in directory named after script
 data_dir = "scratch/" + sys.argv[0].split('.py')[0]
@@ -64,16 +79,19 @@ if nochi:
 if tracer:
     data_dir = data_dir.strip("/")
     data_dir += "_tracer/"
+if run_note:
+    data_dir = data_dir.strip("/")
+    data_dir += "_{}/".format(run_note)
 
-if restart:
-    restart_dirs = glob.glob(data_dir+"restart*")
-    if restart_dirs:
-        restart_dirs.sort()
-        last = int(re.search("_restart(\d+)", restart_dirs[-1]).group(1))
-        data_dir += "_restart{}".format(last+1)
-    else:
-        if os.path.exists(data_dir):
-            data_dir += "_restart1"
+# if restart:
+#     restart_dirs = glob.glob(data_dir+"restart*")
+#     if restart_dirs:
+#         restart_dirs.sort()
+#         last = int(re.search("_restart(\d+)", restart_dirs[-1]).group(1))
+#         data_dir += "_restart{}".format(last+1)
+#     else:
+#         if os.path.exists(data_dir):
+#             data_dir += "_restart1"
 
 from dedalus.tools.config import config
 
@@ -111,6 +129,8 @@ if GSF.domain.distributor.rank == 0:
             diff_filename = os.path.join(data_dir,'diff.txt')
             with open(diff_filename,'w') as file:
                 file.write(GSF.hg_diff)
+
+logger.info("stopping at sim_time = {} periods or wall_time = {} hours".format(stop_sim_time, stop_wall_time))
 
 logger.info("saving run in: {}".format(data_dir))
 
@@ -161,14 +181,14 @@ else:
 omega1 = 1/GSF.eta - 1.
 period = 2*np.pi/omega1
 
-solver.stop_sim_time = 12.5*period
+solver.stop_sim_time = stop_sim_time*period
 
 if nochi:
     solver.stop_sim_time = 2.*period
-solver.stop_wall_time = np.inf
+solver.stop_wall_time = stop_wall_time * 3600.
 solver.stop_iteration = np.inf
 
-output_time_cadence = 0.1*period
+output_time_cadence = 0.1*period/4.
 scalar_output_time_cadence = 0.1*output_time_cadence
 analysis_tasks = GSF.initialize_output(solver, data_dir, sim_dt_profile=output_time_cadence, sim_dt_slice=output_time_cadence, sim_dt_scalar=scalar_output_time_cadence)
 logger.info("Starting CFL")
