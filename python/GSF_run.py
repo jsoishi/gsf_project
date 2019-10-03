@@ -72,7 +72,7 @@ if run_note == 'None':
 
 # save data in directory named after script
 data_dir = "scratch/" + sys.argv[0].split('.py')[0]
-data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_filter{5:5.02e}_nr{6:d}_ntheta{7:d}_nz{8:d}/".format(Re, mu, eta, Pr, N2, filter_frac,nr, ntheta,nz)
+data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_filter{5:5.02e}_nr{6:d}_ntheta{7:d}_nz{8:d}_Lz{9:5.02e}/".format(Re, mu, eta, Pr, N2, filter_frac,nr, ntheta,nz, Lz)
 if nochi:
     data_dir = data_dir.strip("/")
     data_dir += "_nochi/"
