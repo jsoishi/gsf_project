@@ -79,7 +79,7 @@ if __name__ == "__main__":
     with Sync() as sync:
         if sync.comm.rank == 0:
             if not output_path.exists():
-                output_path.mkdir()
+                output_path.mkdir(parents=True)
     print(output_path)
 
     files = args['<files>']
