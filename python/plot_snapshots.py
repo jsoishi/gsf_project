@@ -21,8 +21,35 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from plot_energies import read_timeseries
+def read_timeseries(files, verbose=False):
+    """Read one-dimensional (f(t)) time series data from Dedalus outputfiles.
+    """
+    data_files = sorted(files, key=lambda x: int(os.path.split(x)[1].split('.')[0].split('_s')[1]))
+    f = h5py.File(data_files[0],'r')
+    if verbose:
+        print(10*'-'+' tasks '+10*'-')
+        for task in f['tasks']:
+            print(task)
+        print(10*'-'+' scales '+10*'-')
+        for key in f['scales']:
+            print(key)
 
+    ts = {}
+    for key in f['tasks'].keys():
+        ts[key] = np.squeeze(f['tasks'][key][:])
+
+    ts['time'] = f['scales']['sim_time'][:]
+    f.close()
+
+    for filename in data_files[1:]:
+        f = h5py.File(filename)
+        for k in f['tasks'].keys():
+            ts[k] = np.append(ts[k], np.squeeze(f['tasks'][k][:]),axis=0)
+
+        ts['time'] = np.append(ts['time'],f['scales']['sim_time'][:])
+        f.close()
+
+    return ts
 def create_frame(r, z, u, v, w, T, time, quiver=False):
     fig = plt.figure(figsize=(16,12))
     ax = fig.add_axes([0.1,0.1,0.35,0.8])
@@ -70,16 +97,21 @@ if __name__ == "__main__":
     if not args['--output']:
         p = pathlib.Path(args['<files>'][0])
         print(p)
-        basepath = pathlib.Path('scratch',pathlib.Path(args['<files>'][0]).parts[-3])
-        basepath = pathlib.Path(basepath)
-    else:
-        basepath = pathlib.Path(args['--output']).absolute()
-    output_path = basepath / 'frames'
+        AnalysisDir = pathlib.Path(p.parents[1]/"Analysis")
+        if AnalysisDir.is_dir() == False:
+            pathlib.Path(AnalysisDir).mkdir()
+        if pathlib.Path(AnalysisDir/"frames").is_dir() == False:
+            pathlib.Path(AnalysisDir/"frames").mkdir()
+        #basepath = pathlib.Path('scratch',pathlib.Path(args['<files>'][0]).parts[-3])
+       # basepath = pathlib.Path(basepath)
+    #else:
+       # basepath = pathlib.Path(args['--output']).absolute()
+    output_path = AnalysisDir / 'frames'
     # Create output directory if needed
     with Sync() as sync:
         if sync.comm.rank == 0:
             if not output_path.exists():
-                output_path.mkdir(parents=True)
+                output_path.mkdir()
     print(output_path)
 
     files = args['<files>']

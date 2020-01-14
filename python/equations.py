@@ -42,7 +42,7 @@ class Equations():
     def initialize_output(self, solver, data_dir, sim_dt_slice=None, sim_dt_profile=None, sim_dt_scalar=None, **kwargs):
         self.analysis_tasks = []
         wall_dt_checkpoints = 3540. # 59 minutes
-        checkpoints = solver.evaluator.add_file_handler(os.path.join(data_dir,'checkpoints'), max_writes=50, wall_dt=wall_dt_checkpoints)
+        checkpoints = solver.evaluator.add_file_handler(os.path.join(data_dir,'checkpoints'), max_writes=1, wall_dt=wall_dt_checkpoints)
         checkpoints.add_system(solver.state)
         self.analysis_tasks.append(checkpoints)
 
@@ -65,7 +65,7 @@ class Equations():
         else:
             analysis_profile = solver.evaluator.add_file_handler(data_dir+"profiles", max_writes=20, parallel=False, **kwargs)
         analysis_profile.add_task("plane_avg(KE)", name="KE")
-
+        analysis_profile.add_task("plane_avg(KE_fluct)", name="KE_fluct")
         analysis_profile.add_task("plane_avg(v_tot)", name="v_tot")
         analysis_profile.add_task("plane_avg(u_rms)", name="u_rms")
         analysis_profile.add_task("plane_avg(v_rms)", name="v_rms")
@@ -80,6 +80,10 @@ class Equations():
         else:
             analysis_scalar = solver.evaluator.add_file_handler(data_dir+"scalar", parallel=False, **kwargs)
         analysis_scalar.add_task("integ(r*KE)", name="KE")
+        analysis_scalar.add_task("integ(r*KE_fluct)", name="KE_fluct")
+        analysis_scalar.add_task("integ(KE_zonal_u)", name="KE_fluct_zonal_u")
+        analysis_scalar.add_task("integ(KE_zonal_v)", name="KE_fluct_zonal_v")
+        analysis_scalar.add_task("integ(KE_zonal_w)", name="KE_fluct_zonal_w")
         analysis_scalar.add_task("vol_avg(u_rms)", name="u_rms")
         analysis_scalar.add_task("vol_avg(v_rms)", name="v_rms")
         analysis_scalar.add_task("vol_avg(w_rms)", name="w_rms")
@@ -138,13 +142,19 @@ class Equations():
         self.problem.substitutions['vel_sum_sq'] = 'u**2 + v_tot**2 + w**2'
 
         # NB: this problem assumes delta = R2 - R1 = 1 
-        self.problem.substitutions['plane_avg(A)'] = 'integ(r*A, "z")/Lz'
+        self.problem.substitutions['zonal_avg(A)'] = 'integ(A,"z")/Lz'
         if self.threeD:
+            self.problem.substitutions['plane_avg(A)'] = 'integ(r*A,"z","theta")/(Lz*2*pi*r)'
             self.problem.substitutions['vol_avg(A)']   = 'integ(r*A)/(pi*(R2**2 - R1**2)*Lz)'
             self.problem.substitutions['probe(A)'] = 'interp(A,r={}, theta={}, z={})'.format(self.R1 + 0.5, 0., self.Lz/2.)
         else:
+            self.problem.substitutions['plane_avg(A)'] = 'integ(A, "z")/Lz'
             self.problem.substitutions['vol_avg(A)']   = 'integ(r*A)/Lz'
         self.problem.substitutions['KE'] = '0.5*vel_sum_sq'
+        self.problem.substitutions['KE_fluct'] = '0.5*(u**2+v**2+w**2)'
+        self.problem.substitutions['KE_zonal_u'] = '0.5*zonal_avg(u)**2'
+        self.problem.substitutions['KE_zonal_v'] = '0.5*zonal_avg(v)**2'
+        self.problem.substitutions['KE_zonal_w'] = '0.5*zonal_avg(w)**2'
         self.problem.substitutions['u_rms'] = 'sqrt(u*u)'
         self.problem.substitutions['v_rms'] = 'sqrt(v*v)'
         self.problem.substitutions['w_rms'] = 'sqrt(w*w)'
