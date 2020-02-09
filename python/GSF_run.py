@@ -3,7 +3,7 @@ Dedalus script for 2D/3D GSF simulations
 
 
 Usage:
-    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --tracer --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nr=<nr> --ntheta=<ntheta> --nz=<nz> --filter=<filter> --mesh=<mesh> --stop_sim_time=<stop_sim_time> --stop_wall_time=<stop_wall_time> --run_note=<run_note>] 
+    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --tracer --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nr=<nr> --ntheta=<ntheta> --nz=<nz> --filter=<filter> --mesh=<mesh> --stop_sim_time=<stop_sim_time> --stop_wall_time=<stop_wall_time> --run_note=<run_note> --rand_seed=<rand_seed>] 
 
 Options:
     --Re=<Re>      Reynolds number [default: 80]
@@ -23,6 +23,7 @@ Options:
     --stop_sim_time=<stop_sim_time>       simulation stop time (in inner periods) [default: 15]
     --stop_wall_time=<stop_wall_time>     wall stop time (in hours) [default: inf]
     --run_note=<run_note>      tag to ID specific run (appended to output directory) [default: None]
+    --rand_seed=<rand_seed> Change this for new random noise [default: 42]
 """
 import glob
 import logging
@@ -56,6 +57,7 @@ mesh = args['--mesh']
 stop_sim_time = float(args['--stop_sim_time'])
 stop_wall_time = args['--stop_wall_time']
 
+rand_seed = int(args['--rand_seed'])
 if stop_wall_time == 'inf':
     stop_wall_time = np.inf
 else:
@@ -72,7 +74,7 @@ if run_note == 'None':
 
 # save data in directory named after script
 data_dir = "scratch/" + sys.argv[0].split('.py')[0]
-data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_filter{5:5.02e}_nr{6:d}_ntheta{7:d}_nz{8:d}_Lz{9:5.02e}/".format(Re, mu, eta, Pr, N2, filter_frac,nr, ntheta,nz, Lz)
+data_dir += "_re{0:5.02e}_mu{1:5.02e}_eta{2:5.02e}_Pr{3:5.02e}_N2{4:5.02e}_filter{5:5.02e}_nr{6:d}_ntheta{7:d}_nz{8:d}_Lz{9:5.02e}_Rs{10:5.02e}/".format(Re, mu, eta, Pr, N2, filter_frac,nr, ntheta,nz, Lz, rand_seed)
 if nochi:
     data_dir = data_dir.strip("/")
     data_dir += "_nochi/"
@@ -144,7 +146,7 @@ if restart is None:
      # Random perturbations, need to initialize globally
     gshape = GSF.domain.dist.grid_layout.global_shape(scales=GSF.domain.dealias)
     slices = GSF.domain.dist.grid_layout.slices(scales=GSF.domain.dealias)
-    rand = np.random.RandomState(seed=42)
+    rand = np.random.RandomState(rand_seed)
     noise = rand.standard_normal(gshape)[slices]
 
     A0 = 1e-5
