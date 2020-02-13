@@ -3,7 +3,7 @@ Dedalus script for 2D/3D GSF simulations
 
 
 Usage:
-    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --tracer --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nr=<nr> --ntheta=<ntheta> --nz=<nz> --filter=<filter> --mesh=<mesh> --stop_sim_time=<stop_sim_time> --stop_wall_time=<stop_wall_time> --run_note=<run_note> --rand_seed=<rand_seed>] 
+    GSF_run.py [--Re=<Re> --mu=<mu> --eta=<eta> --N2=<N2> --no-chi --tracer --Pr=<Pr> --Lz=<Lz>  --restart=<restart_file> --nr=<nr> --ntheta=<ntheta> --nz=<nz> --filter=<filter> --mesh=<mesh> --stop_sim_time=<stop_sim_time> --stop_wall_time=<stop_wall_time> --run_note=<run_note> --rand_seed=<rand_seed> --stability_test=<stability_test>] 
 
 Options:
     --Re=<Re>      Reynolds number [default: 80]
@@ -24,6 +24,7 @@ Options:
     --stop_wall_time=<stop_wall_time>     wall stop time (in hours) [default: inf]
     --run_note=<run_note>      tag to ID specific run (appended to output directory) [default: None]
     --rand_seed=<rand_seed> Change this for new random noise [default: 42]
+    --stability_test=<stability_test> When true program will terminate once stability is clear [default: False]
 """
 import glob
 import logging
@@ -58,6 +59,8 @@ stop_sim_time = float(args['--stop_sim_time'])
 stop_wall_time = args['--stop_wall_time']
 
 rand_seed = int(args['--rand_seed'])
+stability_test = args['--stability_test']
+
 if stop_wall_time == 'inf':
     stop_wall_time = np.inf
 else:
@@ -206,6 +209,7 @@ flow = flow_tools.GlobalFlowProperty(solver, cadence=10)
 flow.add_property("abs(DivU)", name='divu')
 flow.add_property("integ(r*KE)", name='KE')
 flow.add_property("integ(r*enstrophy)", name='enstrophy')
+flow.add_property("integ(r*KE_fluct)", name='KE_fluct')
 
 if GSF.threeD:
     geo_factor = 1
@@ -225,6 +229,17 @@ while solver.ok:
         logger.info('Total KE per Lz = {}'.format(geo_factor*flow.max('KE')/Lz))
         logger.info('Total enstrophy per Lz = {}'.format(geo_factor*flow.max('enstrophy')/Lz))
     dt = CFL.compute_dt()
+    if solver.sim_time > 500 and stability_test:
+        logger.info('KE_fluct = {}'.format(flow.max('KE_fluct')))
+        logger.info('This run has run long enough to determine stability')
+        if flow.max('KE_fluct')>10**(-4):
+            logger.info('This system appears unstable')
+        elif flow.max('KE_fluct')<10**(-4) and flow.max('KE_fluct')>10**(-12):
+            logger.info('This system appears semi-stable')
+        else:
+            logger.info('This system appears stable')
+        break	
+		
 
 # write last checkpoint
 end_world_time = solver.get_world_time()
